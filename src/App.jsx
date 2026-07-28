@@ -232,14 +232,14 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   const [caneAperto, setCaneAperto] = useState(null);
 
   function normalizza(s) {
-    return (s || "").trim().toLowerCase().replace(/\s+/g, "");
+    return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
   }
 
   function trovaUtente({ nome, telefono, cane }) {
     // chiamaAPI_riconosciUtente({ nome, telefono, cane }) -> il backend farà lo stesso controllo
-    const tokenInput = (nome || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const tokenInput = String(nome || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
     return anagrafica.find((c) => {
-      const tokenStore = c.conduttore.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const tokenStore = String(c.conduttore || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
       const nomeCombacia = tokenInput.some((t) => tokenStore.includes(t)); // basta nome O cognome
       return (
         nomeCombacia &&
