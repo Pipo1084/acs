@@ -214,8 +214,14 @@ function PrimaryButton({ children, onClick, full, color = COLORS.green, ...props
 
 function Header({ role, setRole, onOpenInstall }) {
   return (
-    <div style={{ background: `linear-gradient(155deg, ${COLORS.navy} 0%, ${COLORS.navyDeep} 100%)` }} className="sticky top-0 z-20">
-      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+    <div
+      style={{
+        background: `linear-gradient(155deg, ${COLORS.navy} 0%, ${COLORS.navyDeep} 100%)`,
+        paddingTop: "env(safe-area-inset-top, 0px)",
+      }}
+      className="sticky top-0 z-20"
+    >
+      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-5 pb-3 flex items-center gap-3">
         <Badge size={44} />
         <div className="flex-1 min-w-0">
           <div className="text-white font-bold text-xl leading-none tracking-wide flex items-center gap-1.5" style={{ fontFamily: "Oswald, sans-serif" }}>
