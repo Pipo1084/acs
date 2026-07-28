@@ -263,8 +263,9 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   const [riconosciuto, setRiconosciuto] = useState(null);
   const [inSospeso, setInSospeso] = useState(false);
   const [slotScelto, setSlotScelto] = useState(null);
-  const [form, setForm] = useState({ nome: "", telefono: "", cane: "", razza: "", eta: "" });
+  const [form, setForm] = useState({ nome: "", telefono: "", cane: "", razza: "", eta: "", consensoPrivacy: false, consensoFotoVideo: false });
   const [caneAperto, setCaneAperto] = useState(null);
+  const [informativaAperta, setInformativaAperta] = useState(null);
 
   function normalizza(s) {
     return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
@@ -290,12 +291,19 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
 
   async function prenota(e) {
     e.preventDefault();
+    if (!form.consensoPrivacy) {
+      alert("Per proseguire devi dichiarare di aver letto l’informativa privacy.");
+      return;
+    }
     const match = trovaUtente(form);
 
     try {
       const risposta = await chiamaAPI("creaPrenotazione", {
         disponibilitaId: slotScelto.id, clienteNome: form.nome, clienteEmail: "", clienteTelefono: form.telefono,
         caneNome: form.cane, acquistoId: "", sospeso: !match,
+        consensoPrivacy: form.consensoPrivacy,
+        consensoFotoVideo: form.consensoFotoVideo,
+        versioneInformativa: "2026-07-28",
       });
 
       if (!risposta.ok) {
@@ -325,7 +333,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
       setRiconosciuto(match);
       setPrenotato(slotScelto);
       setSlotScelto(null);
-      setForm({ nome: "", telefono: "", cane: "", razza: "", eta: "" });
+      setForm({ nome: "", telefono: "", cane: "", razza: "", eta: "", consensoPrivacy: false, consensoFotoVideo: false });
     } catch (err) {
       alert("Impossibile contattare il server. Controlla la connessione e riprova.");
     }
@@ -377,10 +385,114 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
             </div>
           )}
 
-          <PrimaryButton full>Conferma prenotazione</PrimaryButton>
+          <div className="rounded-xl border p-3.5 space-y-4" style={{ borderColor: "#DDE4E7", background: "#F8FAFA" }}>
+            <div>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.consensoPrivacy}
+                  onChange={(e) => setForm({ ...form, consensoPrivacy: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 accent-emerald-700"
+                  required
+                />
+                <span className="text-[12px] leading-relaxed" style={{ color: COLORS.navy }}>
+                  Dichiaro di aver letto l’<b>Informativa Privacy</b> sul trattamento dei dati personali. <span style={{ color: COLORS.terracotta }}>(obbligatorio)</span>
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setInformativaAperta("privacy")}
+                className="mt-2 ml-6 inline-flex items-center gap-1.5 text-[12px] font-semibold underline underline-offset-2"
+                style={{ color: COLORS.green }}
+              >
+                <ShieldCheck size={14} /> Leggi l’informativa privacy
+              </button>
+            </div>
+
+            <div className="pt-3" style={{ borderTop: "1px solid #E2E8EA" }}>
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.consensoFotoVideo}
+                  onChange={(e) => setForm({ ...form, consensoFotoVideo: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 accent-emerald-700"
+                />
+                <span className="text-[12px] leading-relaxed" style={{ color: COLORS.navy }}>
+                  Acconsento all’utilizzo di foto e video realizzati durante le attività dell’associazione. <span className="text-slate-400">(facoltativo)</span>
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setInformativaAperta("foto")}
+                className="mt-2 ml-6 inline-flex items-center gap-1.5 text-[12px] font-semibold underline underline-offset-2"
+                style={{ color: COLORS.green }}
+              >
+                <Eye size={14} /> Leggi l’informativa foto e video
+              </button>
+            </div>
+          </div>
+
+          <PrimaryButton full disabled={!form.consensoPrivacy} style={{ opacity: form.consensoPrivacy ? 1 : 0.5, cursor: form.consensoPrivacy ? "pointer" : "not-allowed" }}>
+            Conferma prenotazione
+          </PrimaryButton>
           <p className="text-[11px] text-center text-slate-400 pt-1">
             Nome, telefono e cane servono a riconoscerti automaticamente se sei già socio.
           </p>
+
+          {informativaAperta && (
+            <div
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+              style={{ background: "rgba(14, 35, 52, 0.62)" }}
+              onClick={() => setInformativaAperta(null)}
+            >
+              <div
+                className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[88vh] overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 px-5 py-4" style={{ background: COLORS.navy }}>
+                  <div className="w-9 h-9 rounded-full grid place-items-center" style={{ background: "rgba(255,255,255,0.12)" }}>
+                    {informativaAperta === "privacy" ? <ShieldCheck size={20} color="white" /> : <Eye size={20} color="white" />}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-white font-bold" style={{ fontFamily: "Oswald, sans-serif" }}>
+                      {informativaAperta === "privacy" ? "Informativa Privacy" : "Informativa Foto e Video"}
+                    </h3>
+                    <p className="text-[11px]" style={{ color: "#BFD0D8" }}>
+                      {informativaAperta === "privacy" ? "Regolamento UE 2016/679 (GDPR)" : "Consenso facoltativo all’uso delle immagini"}
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => setInformativaAperta(null)} className="p-2 rounded-full" style={{ background: "rgba(255,255,255,0.1)" }}>
+                    <X size={18} color="white" />
+                  </button>
+                </div>
+
+                <div className="px-5 py-5 overflow-y-auto text-[13px] leading-relaxed text-slate-600" style={{ maxHeight: "calc(88vh - 150px)" }}>
+                  {informativaAperta === "privacy" ? (
+                    <div className="space-y-4">
+                      <p><b style={{ color: COLORS.navy }}>Titolare del trattamento</b><br />ACS – Associazione Cani Salvataggio, contattabile tramite i recapiti ufficiali dell’associazione.</p>
+                      <p><b style={{ color: COLORS.navy }}>Dati trattati</b><br />Nome e cognome, numero di telefono e informazioni relative al cane comunicate durante la registrazione e la prenotazione.</p>
+                      <p><b style={{ color: COLORS.navy }}>Finalità</b><br />Gestione dell’anagrafica, delle prenotazioni, dei carnet, delle lezioni e delle comunicazioni strettamente collegate alle attività associative.</p>
+                      <p><b style={{ color: COLORS.navy }}>Base giuridica</b><br />Esecuzione delle attività richieste dall’interessato e adempimento degli obblighi connessi alla gestione del servizio.</p>
+                      <p><b style={{ color: COLORS.navy }}>Conservazione e comunicazione</b><br />I dati sono conservati per il tempo necessario alla gestione del rapporto e agli obblighi di legge. Non sono diffusi e possono essere comunicati solo a soggetti autorizzati o nei casi previsti dalla legge.</p>
+                      <p><b style={{ color: COLORS.navy }}>Diritti dell’interessato</b><br />È possibile richiedere accesso, rettifica, cancellazione, limitazione o opposizione al trattamento e rivolgersi al Garante per la protezione dei dati personali, secondo gli articoli 15-22 del GDPR.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <p>Il consenso riguarda fotografie e riprese video realizzate durante lezioni, incontri, dimostrazioni ed eventi dell’associazione nelle quali possano comparire il partecipante e/o il suo cane.</p>
+                      <p><b style={{ color: COLORS.navy }}>Finalità</b><br />Pubblicazione a scopo informativo, divulgativo e promozionale sui canali dell’associazione, compresi sito internet, social network e materiale informativo.</p>
+                      <p><b style={{ color: COLORS.navy }}>Facoltatività</b><br />Il consenso è facoltativo: il mancato consenso non impedisce la registrazione o la prenotazione alle attività.</p>
+                      <p><b style={{ color: COLORS.navy }}>Revoca</b><br />Il consenso può essere revocato in qualsiasi momento contattando l’associazione. La revoca non pregiudica la liceità degli utilizzi effettuati prima della richiesta.</p>
+                      <p><b style={{ color: COLORS.navy }}>Avvertenza sui social</b><br />Le immagini pubblicate online possono essere condivise o riprodotte da terzi al di fuori del controllo diretto dell’associazione.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 py-4 border-t bg-white">
+                  <PrimaryButton type="button" full onClick={() => setInformativaAperta(null)}>Ho letto</PrimaryButton>
+                </div>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     );
