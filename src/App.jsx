@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Component } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import * as XLSX from "xlsx";
 import {
@@ -739,8 +739,8 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, puoModif
           <div>
             <SectionLabel>Gestione quote</SectionLabel>
             <div className="space-y-2">
-              <QuotaRow label="Quota associativa" quota={c.quotaAssociativa} onSave={(q) => onUpdate({ ...c, quotaAssociativa: q })} puoModificare={puoModificare} />
-              <QuotaRow label="Carnet lezioni" quota={c.quotaCarnet} onSave={(q) => onUpdate({ ...c, quotaCarnet: q })} puoModificare={puoModificare} />
+              <QuotaRow label="Quota associativa" quota={c.quotaAssociativa || { importo: 0, versato: 0, scadenza: "", stato: "da versare" }} onSave={(q) => onUpdate({ ...c, quotaAssociativa: q })} puoModificare={puoModificare} />
+              <QuotaRow label="Carnet lezioni" quota={c.quotaCarnet || { importo: 0, versato: 0, scadenza: "", stato: "da versare" }} onSave={(q) => onUpdate({ ...c, quotaCarnet: q })} puoModificare={puoModificare} />
             </div>
           </div>
 
@@ -1981,7 +1981,51 @@ function InstallBanner({ onClose, deferredPrompt, onInstallClick }) {
 
 /* ---------- App ---------- */
 
-export default function App() {
+/* ---------- Rete di sicurezza contro la schermata bianca ---------- */
+// Se un componente qualsiasi va in errore durante il render, React normalmente
+// smette di disegnare tutto e la pagina resta bianca, senza nessun messaggio.
+// Questo componente intercetta l'errore e mostra un avviso con un tasto per
+// ricaricare, invece del vuoto totale.
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { haErrore: false };
+  }
+  static getDerivedStateFromError() {
+    return { haErrore: true };
+  }
+  componentDidCatch(error, info) {
+    // Visibile nella console del browser (utile per capire cosa è successo)
+    console.error("Errore catturato da ErrorBoundary:", error, info);
+  }
+  render() {
+    if (this.state.haErrore) {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6" style={{ background: COLORS.paper }}>
+          <div className="max-w-sm text-center">
+            <div className="text-3xl mb-3">🐾💤</div>
+            <h2 className="font-bold text-lg mb-2" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
+              Qualcosa non ha funzionato
+            </h2>
+            <p className="text-sm text-slate-500 mb-5">
+              Si è verificato un problema imprevisto. Prova a ricaricare la pagina — se il problema continua, segnalalo.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-5 py-2.5 rounded-full text-white text-sm font-bold"
+              style={{ background: COLORS.navy, fontFamily: "Oswald, sans-serif" }}
+            >
+              Ricarica l'app
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function AppInterno() {
   const [role, setRole] = useState("cliente");
   const [installVisible, setInstallVisible] = useState(true);
   const backendCollegato = !API_URL.includes("INSERISCI_QUI");
@@ -2063,5 +2107,13 @@ export default function App() {
         />
       </div>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppInterno />
+    </ErrorBoundary>
   );
 }
