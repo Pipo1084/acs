@@ -82,7 +82,11 @@ function mappaCane(r) {
 }
 
 function mappaPrenotazione(r) {
-  return { id: r.id, slotId: r.disponibilita_id, cliente: r.cliente_nome, cane: r.cane_nome, telefono: r.cliente_telefono, stato: r.stato, confermatoDa: r.confermato_da };
+  return {
+    id: r.id, slotId: r.disponibilita_id, cliente: r.cliente_nome, cane: r.cane_nome,
+    telefono: r.cliente_telefono, stato: r.stato, confermatoDa: r.confermato_da,
+    annullatoDa: r.annullato_da || "", dataAnnullamento: r.data_annullamento || ""
+  };
 }
 
 function mappaCarnet(r) {
@@ -404,7 +408,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   }
 
   if (slotScelto) {
-    const partecipanti = prenotazioni.filter((p) => p.slotId === slotScelto.id && p.stato !== "in sospeso");
+    const partecipanti = prenotazioni.filter((p) => p.slotId === slotScelto.id && p.stato !== "in sospeso" && p.stato !== "annullata");
     return (
       <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-5">
         <button onClick={() => setSlotScelto(null)} className="flex items-center gap-1 text-sm mb-4" style={{ color: COLORS.navy }}>
@@ -588,7 +592,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   }
 
   if (prenotato) {
-    const partecipanti = prenotazioni.filter((p) => p.slotId === prenotato.id && p.stato !== "in sospeso");
+    const partecipanti = prenotazioni.filter((p) => p.slotId === prenotato.id && p.stato !== "in sospeso" && p.stato !== "annullata");
     return (
       <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-10 text-center">
         <div className="w-14 h-14 mx-auto rounded-full grid place-items-center mb-4" style={{ background: inSospeso ? "#F3DDCE" : "#E7F6EC" }}>
@@ -1145,7 +1149,7 @@ function formatData(iso) {
 
 /* ---------- Vista Istruttore ---------- */
 
-function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPresenza, onDelete, puoModificare = true }) {
+function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPresenza, onAnnullaIscrizione, onDelete, puoModificare = true }) {
   const [aperto, setAperto] = useState(false);
   const style = getTipoStyle(slot.tipo);
   const pieni = slot.postiOccupati >= slot.postiTotali;
@@ -1192,24 +1196,41 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
                     <div className="text-[12.5px] font-medium truncate" style={{ color: COLORS.ink }}>{p.cliente}</div>
                     <div className="text-[11px] text-slate-500 truncate">{p.cane}</div>
                   </div>
-                  {p.stato === "presente" ? (
-                    <span className="text-[10.5px] font-mono px-2 py-1 rounded-full shrink-0 flex items-center gap-1" style={{ background: "#E7F6EC", color: COLORS.green }} title={`Presente · ${caneInfo ? caneInfo.lezioniResidue : "–"} lezioni rimanenti`}>
-                      <CheckCircle2 size={12} /> {caneInfo ? caneInfo.lezioniResidue : "–"} lez.
-                    </span>
-                  ) : puoModificare ? (
-                    <button
-                      onClick={() => onConfermaPresenza(p.id, p.cane)}
-                      title="Conferma presenza"
-                      className="text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full shrink-0"
-                      style={{ color: "#fff", background: COLORS.green }}
-                    >
-                      <CheckCircle2 size={12} /> Conferma
-                    </button>
-                  ) : (
-                    <span className="text-[10.5px] font-mono px-2 py-1 rounded-full shrink-0" style={{ background: "#F5F6F8", color: COLORS.muted }}>
-                      in attesa
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {p.stato === "presente" ? (
+                      <span className="text-[10.5px] font-mono px-2 py-1 rounded-full flex items-center gap-1" style={{ background: "#E7F6EC", color: COLORS.green }} title={`Presente · ${caneInfo ? caneInfo.lezioniResidue : "–"} lezioni rimanenti`}>
+                        <CheckCircle2 size={12} /> {caneInfo ? caneInfo.lezioniResidue : "–"} lez.
+                      </span>
+                    ) : puoModificare ? (
+                      <button
+                        onClick={() => onConfermaPresenza(p.id, p.cane)}
+                        title="Conferma presenza"
+                        className="text-[11px] font-semibold flex items-center gap-1 px-2.5 py-1 rounded-full"
+                        style={{ color: "#fff", background: COLORS.green }}
+                      >
+                        <CheckCircle2 size={12} /> Conferma
+                      </button>
+                    ) : (
+                      <span className="text-[10.5px] font-mono px-2 py-1 rounded-full" style={{ background: "#F5F6F8", color: COLORS.muted }}>
+                        in attesa
+                      </span>
+                    )}
+                    {puoModificare && (
+                      <button
+                        onClick={() => {
+                          const testo = p.stato === "presente"
+                            ? `Annullare l'iscrizione di ${p.cane}? La lezione verrà restituita al carnet se era stata scalata.`
+                            : `Annullare l'iscrizione di ${p.cane}? Il posto tornerà disponibile.`;
+                          if (window.confirm(testo)) onAnnullaIscrizione(p);
+                        }}
+                        title="Annulla iscrizione"
+                        className="w-7 h-7 rounded-full grid place-items-center"
+                        style={{ background: "#FDECEA" }}
+                      >
+                        <X size={13} color={COLORS.red} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -1460,6 +1481,36 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
       }
     } catch (err) {
       alert("Impossibile contattare il backend: la conferma resta visibile solo in questa sessione.");
+    }
+  }
+
+
+  async function annullaIscrizione(prenotazione) {
+    try {
+      const risposta = await chiamaAPI("annullaPrenotazione", {
+        prenotazioneId: prenotazione.id,
+        username: istruttoreLoggato.username,
+        password: pwd,
+      });
+      if (!risposta.ok) {
+        alert(risposta.errore || "Non è stato possibile annullare l'iscrizione.");
+        return;
+      }
+
+      setPrenotazioni((prev) => prev.map((p) =>
+        p.id === prenotazione.id ? { ...p, stato: "annullata", annullatoDa: istruttoreLoggato.nome } : p
+      ));
+      setEventi((prev) => prev.map((s) =>
+        s.id === prenotazione.slotId ? { ...s, postiOccupati: Math.max(0, s.postiOccupati - 1) } : s
+      ));
+
+      // Se era già stata confermata la presenza, il backend riaccredita la lezione.
+      // Ricarichiamo i dati amministrativi con una sola chiamata per riallineare carnet e scheda cane.
+      if (prenotazione.stato === "presente") {
+        await caricaDatiBackend();
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
     }
   }
 
@@ -1994,9 +2045,9 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
             {eventi.map((slot) => {
-              const iscrizioni = prenotazioni.filter((p) => p.slotId === slot.id && p.stato !== "in sospeso");
+              const iscrizioni = prenotazioni.filter((p) => p.slotId === slot.id && p.stato !== "in sospeso" && p.stato !== "annullata");
               const daConfermare = iscrizioni.filter((p) => p.stato !== "presente").length;
-              return <EventoCard key={slot.id} slot={slot} iscrizioni={iscrizioni} daConfermare={daConfermare} anagrafica={anagrafica} onConfermaPresenza={confermaPresenza} onDelete={() => eliminaEvento(slot.id)} puoModificare={puoModificare} />;
+              return <EventoCard key={slot.id} slot={slot} iscrizioni={iscrizioni} daConfermare={daConfermare} anagrafica={anagrafica} onConfermaPresenza={confermaPresenza} onAnnullaIscrizione={annullaIscrizione} onDelete={() => eliminaEvento(slot.id)} puoModificare={puoModificare} />;
             })}
           </div>
         </div>
@@ -2381,24 +2432,25 @@ function AppInterno() {
 
   async function caricaEventiPubblici() {
     if (!backendCollegato) return;
+
+    // Mostra subito l'ultima copia disponibile nel browser, poi aggiorna in background.
     try {
-      const [datiEventi, datiPartecipanti] = await Promise.all([
-        chiamaAPIGet("getDisponibilita"),
-        chiamaAPIGet("getPartecipantiPubblici"),
-      ]);
-
-      if (Array.isArray(datiEventi)) {
-        setEventi(datiEventi.map(mappaEvento));
+      const cache = sessionStorage.getItem("acs-dati-pubblici");
+      if (cache) {
+        const salvati = JSON.parse(cache);
+        if (Array.isArray(salvati.disponibilita)) setEventi(salvati.disponibilita.map(mappaEvento));
+        if (Array.isArray(salvati.partecipanti)) setPrenotazioni(salvati.partecipanti.map(mappaPrenotazione));
       }
+    } catch (_) {}
 
-      // Per l'area pubblica carichiamo soltanto i dati minimi necessari:
-      // turno, nome del cane e stato. I dati personali del proprietario
-      // continuano a essere disponibili esclusivamente dopo il login.
-      if (Array.isArray(datiPartecipanti)) {
-        setPrenotazioni(datiPartecipanti.map(mappaPrenotazione));
-      }
+    try {
+      // Una sola chiamata a Google al posto delle precedenti due.
+      const dati = await chiamaAPIGet("getDatiPubblici");
+      if (Array.isArray(dati.disponibilita)) setEventi(dati.disponibilita.map(mappaEvento));
+      if (Array.isArray(dati.partecipanti)) setPrenotazioni(dati.partecipanti.map(mappaPrenotazione));
+      try { sessionStorage.setItem("acs-dati-pubblici", JSON.stringify(dati)); } catch (_) {}
     } catch (err) {
-      // Se il caricamento fallisce, restano visualizzati i dati precedenti.
+      // Se il caricamento fallisce, restano visualizzati i dati precedenti o la cache.
     }
   }
 
