@@ -2148,9 +2148,29 @@ class ErrorBoundary extends Component {
   }
 }
 
+const INSTALL_BANNER_STORAGE_KEY = "acs-install-banner-hidden";
+
+function appGiaInstallata() {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    window.navigator?.standalone === true
+  );
+}
+
+function bannerInstallazioneVisibileAllAvvio() {
+  if (typeof window === "undefined") return false;
+  if (appGiaInstallata()) return false;
+  try {
+    return localStorage.getItem(INSTALL_BANNER_STORAGE_KEY) !== "true";
+  } catch {
+    return true;
+  }
+}
+
 function AppInterno() {
   const [role, setRole] = useState("cliente");
-  const [installVisible, setInstallVisible] = useState(true);
+  const [installVisible, setInstallVisible] = useState(bannerInstallazioneVisibileAllAvvio);
   const backendCollegato = !API_URL.includes("INSERISCI_QUI");
   const [prenotazioni, setPrenotazioni] = useState(backendCollegato ? [] : MOCK_PRENOTAZIONI);
   const [eventi, setEventi] = useState(backendCollegato ? [] : MOCK_DISPONIBILITA);
@@ -2189,12 +2209,35 @@ function AppInterno() {
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
+  function chiudiBannerInstallazione() {
+    setInstallVisible(false);
+    try {
+      localStorage.setItem(INSTALL_BANNER_STORAGE_KEY, "true");
+    } catch {
+      // Se il browser blocca localStorage, il banner resta chiuso fino al prossimo caricamento.
+    }
+  }
+
   async function installaApp() {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
+    const scelta = await deferredPrompt.userChoice;
     setDeferredPrompt(null);
+
+    if (scelta?.outcome === "accepted") {
+      chiudiBannerInstallazione();
+    }
   }
+
+  // Quando il browser conferma che la PWA è stata installata, il banner
+  // viene nascosto e non comparirà più su questo dispositivo.
+  useEffect(() => {
+    function appInstallata() {
+      chiudiBannerInstallazione();
+    }
+    window.addEventListener("appinstalled", appInstallata);
+    return () => window.removeEventListener("appinstalled", appInstallata);
+  }, []);
 
   const pawPattern = `data:image/svg+xml,${encodeURIComponent(`
     <svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'>
@@ -2230,7 +2273,7 @@ function AppInterno() {
         </div>
       )}
       <Header role={role} setRole={setRole} onOpenInstall={() => setInstallVisible(true)} />
-      {installVisible && <InstallBanner onClose={() => setInstallVisible(false)} deferredPrompt={deferredPrompt} onInstallClick={installaApp} />}
+      {installVisible && !appGiaInstallata() && <InstallBanner onClose={chiudiBannerInstallazione} deferredPrompt={deferredPrompt} onInstallClick={installaApp} />}
       {/* Entrambe le viste restano montate: così l'istruttore non perde la sessione
           passando all'area cliente e tornando indietro — non serve rifare il login. */}
       <div style={{ display: role === "cliente" ? "block" : "none" }}>
