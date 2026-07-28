@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import {
   PawPrint, Calendar, Clock, Phone, Mail, Lock, CheckCircle2,
   Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical,
-  X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, TrendingUp, LogOut, LogIn, Trash2, Search, FileDown, Printer
+  X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, TrendingUp, LogOut, LogIn, Trash2, Search, FileDown, Printer, Eye, EyeOff
 } from "lucide-react";
 
 /* ============================================================
@@ -88,12 +88,6 @@ const MOCK_STORICO = {
 const MOCK_PRENOTAZIONI = [
   { id: "p1", slotId: "d1", cliente: "Marco Villa", cane: "Argo", telefono: "333 1234567", stato: "in attesa" },
   { id: "p2", slotId: "d2", cliente: "Elisa Conte", cane: "Nina", telefono: "347 7654321", stato: "presente" },
-];
-
-const MOCK_ISTRUTTORI = [
-  { nome: "Luca Ferri", username: "luca.ferri", password: "luca123", ruolo: "admin" },
-  { nome: "Sara Bianchi", username: "sara.bianchi", password: "sara123", ruolo: "modificatore" },
-  { nome: "Marco Neri", username: "marco.neri", password: "marco123", ruolo: "lettura" },
 ];
 
 /* ---------- Componenti di supporto ---------- */
@@ -709,18 +703,26 @@ function AnagraficaCard({ c, onUpdate, storico, onAddStorico, puoModificare = tr
 }
 
 
-function Input({ label, value, onChange, required, icon }) {
+function Input({ label, value, onChange, required, icon, type = "text" }) {
+  const [mostra, setMostra] = useState(false);
+  const isPassword = type === "password";
   return (
     <label className="block">
       <span className="text-[12px] font-medium text-slate-500 mb-1 block">{label}</span>
       <div className="flex items-center gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "#E4DCC8" }}>
         {icon && <span style={{ color: COLORS.muted }}>{icon}</span>}
         <input
+          type={isPassword && !mostra ? "password" : "text"}
           className="flex-1 outline-none text-sm bg-transparent"
           value={value}
           required={required}
           onChange={(e) => onChange(e.target.value)}
         />
+        {isPassword && (
+          <button type="button" onClick={() => setMostra((v) => !v)} className="shrink-0" tabIndex={-1}>
+            {mostra ? <EyeOff size={15} color={COLORS.muted} /> : <Eye size={15} color={COLORS.muted} />}
+          </button>
+        )}
       </div>
     </label>
   );
@@ -813,6 +815,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const [usernameLogin, setUsernameLogin] = useState("");
   const [pwd, setPwd] = useState("");
   const [errore, setErrore] = useState(false);
+  const [erroreMessaggio, setErroreMessaggio] = useState("");
   const [tab, setTab] = useState("anagrafica");
   const [nuovoEvento, setNuovoEvento] = useState(false);
   const [formEvento, setFormEvento] = useState({ data: "", ora: "", tipo: "", postiTotali: "" });
@@ -825,14 +828,26 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const [filtroAnagrafica, setFiltroAnagrafica] = useState("tutti");
   const [bozzaQuota, setBozzaQuota] = useState(50);
   const [storico, setStorico] = useState(MOCK_STORICO);
-  const [istruttori, setIstruttori] = useState(MOCK_ISTRUTTORI);
+  const [istruttori, setIstruttori] = useState([]);
   const [nuovoIstruttore, setNuovoIstruttore] = useState(false);
   const [formIstruttore, setFormIstruttore] = useState({ nome: "", username: "", password: "", ruolo: "lettura" });
   const [log, setLog] = useState([]);
 
   function registraLog(nome, azione, entita, dettaglio) {
     setLog((prev) => [{ id: Date.now() + Math.random(), quando: new Date(), istruttore: nome, azione, entita, dettaglio }, ...prev]);
-    // chiamaAPI_registraLog({ azione, entita, dettaglio, username, password }) -> il backend lo fa già automaticamente ad ogni azione protetta
+    // il backend registra già da solo il log ad ogni azione protetta; qui teniamo
+    // anche una copia visibile subito in questa sessione, senza aspettare un refresh
+  }
+
+  async function caricaUtenti(username, password) {
+    try {
+      const url = `${API_URL}?action=getUtenti&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+      const res = await fetch(url);
+      const dati = await res.json();
+      if (Array.isArray(dati)) setIstruttori(dati);
+    } catch (err) {
+      // se fallisce, la lista resta vuota: non è bloccante per il resto dell'app
+    }
   }
 
   async function login(e) {
@@ -840,18 +855,8 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     setErrore(false);
 
     if (API_URL.includes("INSERISCI_QUI")) {
-      // API_URL non ancora collegato: usa gli account di prova finti,
-      // così puoi comunque provare l'app prima di collegare il backend
-      const trovato = istruttori.find((i) =>
-        i.username.trim().toLowerCase() === usernameLogin.trim().toLowerCase() && i.password === pwd
-      );
-      if (trovato) {
-        setIstruttoreLoggato(trovato);
-        setAuth(true);
-        registraLog(trovato.nome, "accesso", "Utente", `${trovato.nome} ha effettuato l'accesso (demo)`);
-      } else {
-        setErrore(true);
-      }
+      setErroreMessaggio("Il backend non è ancora collegato: manca l'URL in API_URL.");
+      setErrore(true);
       return;
     }
 
@@ -861,10 +866,13 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
         setIstruttoreLoggato(risposta.utente);
         setAuth(true);
         registraLog(risposta.utente.nome, "accesso", "Utente", `${risposta.utente.nome} ha effettuato l'accesso`);
+        caricaUtenti(usernameLogin, pwd);
       } else {
+        setErroreMessaggio(risposta.errore || "Username o password non corretti.");
         setErrore(true);
       }
     } catch (err) {
+      setErroreMessaggio("Impossibile contattare il backend. Controlla API_URL e la connessione.");
       setErrore(true);
     }
   }
@@ -888,8 +896,8 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
         <p className="text-center text-sm text-slate-500 mb-6">Accedi con il tuo account personale.</p>
         <form onSubmit={login} className="space-y-3">
           <Input label="Username" value={usernameLogin} onChange={setUsernameLogin} icon={<Users size={14} />} />
-          <Input label="Password" value={pwd} onChange={setPwd} icon={<Lock size={14} />} />
-          {errore && <p className="text-[12px] text-center" style={{ color: COLORS.red }}>Username o password non corretti.</p>}
+          <Input label="Password" type="password" value={pwd} onChange={setPwd} icon={<Lock size={14} />} />
+          {errore && <p className="text-[12px] text-center" style={{ color: COLORS.red }}>{erroreMessaggio || "Username o password non corretti."}</p>}
           <PrimaryButton full color={COLORS.navy}>Accedi</PrimaryButton>
         </form>
       </div>
@@ -954,14 +962,53 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     // chiamaAPI_rifiutaRichiesta({ prenotazioneId: richiesta.id, username: istruttoreLoggato.username, password })
   }
 
-  function creaIstruttore(e) {
+  async function creaIstruttore(e) {
     e.preventDefault();
     if (!isAdmin) return;
-    // chiamaAPI_creaUtente({ nomeNuovo: formIstruttore.nome, usernameNuovo: formIstruttore.username, passwordNuova: formIstruttore.password, ruoloNuovo: formIstruttore.ruolo, username: istruttoreLoggato.username, password: pwd })
-    setIstruttori((prev) => [...prev, { ...formIstruttore }]);
-    registraLog(istruttoreLoggato.nome, "creazione", "Utente", `Nuovo account: ${formIstruttore.nome} (${formIstruttore.username}, ruolo ${formIstruttore.ruolo})`);
-    setFormIstruttore({ nome: "", username: "", password: "", ruolo: "lettura" });
-    setNuovoIstruttore(false);
+    try {
+      const risposta = await chiamaAPI("creaUtente", {
+        nomeNuovo: formIstruttore.nome,
+        usernameNuovo: formIstruttore.username,
+        passwordNuova: formIstruttore.password,
+        ruoloNuovo: formIstruttore.ruolo,
+        username: istruttoreLoggato.username,
+        password: pwd,
+      });
+      if (risposta.ok) {
+        setIstruttori((prev) => [...prev, { nome: formIstruttore.nome, username: formIstruttore.username, ruolo: formIstruttore.ruolo, attivo: true }]);
+        registraLog(istruttoreLoggato.nome, "creazione", "Utente", `Nuovo account: ${formIstruttore.nome} (${formIstruttore.username}, ruolo ${formIstruttore.ruolo})`);
+        setFormIstruttore({ nome: "", username: "", password: "", ruolo: "lettura" });
+        setNuovoIstruttore(false);
+      } else {
+        alert(risposta.errore || "Non è stato possibile creare l'utente.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
+  }
+
+  async function eliminaIstruttore(usernameDaEliminare) {
+    if (!isAdmin) return;
+    if (usernameDaEliminare === istruttoreLoggato.username) {
+      alert("Non puoi eliminare il tuo stesso account mentre sei collegato.");
+      return;
+    }
+    if (!window.confirm(`Eliminare l'account "${usernameDaEliminare}"? L'azione non si può annullare.`)) return;
+    try {
+      const risposta = await chiamaAPI("eliminaUtente", {
+        usernameDaEliminare,
+        username: istruttoreLoggato.username,
+        password: pwd,
+      });
+      if (risposta.ok) {
+        setIstruttori((prev) => prev.filter((i) => i.username !== usernameDaEliminare));
+        registraLog(istruttoreLoggato.nome, "eliminazione", "Utente", `Eliminato account: ${usernameDaEliminare}`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile eliminare l'utente.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
   }
 
   function creaEvento(e) {
@@ -1306,17 +1353,26 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full uppercase shrink-0" style={{ background: `${ruoloStile.color}1A`, color: ruoloStile.color }}>
                       {ruoloStile.label}
                     </span>
+                    {isAdmin && i.username !== istruttoreLoggato.username && (
+                      <button onClick={() => eliminaIstruttore(i.username)} title="Elimina utente" className="shrink-0 w-7 h-7 rounded-full grid place-items-center" style={{ background: "#FDECEA" }}>
+                        <Trash2 size={13} color={COLORS.red} />
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
+
+            {istruttori.length === 0 && (
+              <p className="text-[11.5px] text-slate-400 mb-3">🐾 Nessun utente da mostrare (o la lista si sta ancora caricando).</p>
+            )}
 
             {isAdmin ? (
               nuovoIstruttore ? (
                 <form onSubmit={creaIstruttore} className="rounded-xl border p-4 space-y-3" style={{ borderColor: "#E4DCC8" }}>
                   <Input label="Nome" value={formIstruttore.nome} onChange={(v) => setFormIstruttore({ ...formIstruttore, nome: v })} required />
                   <Input label="Username" value={formIstruttore.username} onChange={(v) => setFormIstruttore({ ...formIstruttore, username: v })} required icon={<Users size={13} />} />
-                  <Input label="Password" value={formIstruttore.password} onChange={(v) => setFormIstruttore({ ...formIstruttore, password: v })} required icon={<Lock size={13} />} />
+                  <Input label="Password" type="password" value={formIstruttore.password} onChange={(v) => setFormIstruttore({ ...formIstruttore, password: v })} required icon={<Lock size={13} />} />
                   <label className="block">
                     <span className="text-[12px] font-medium text-slate-500 mb-1 block">Ruolo</span>
                     <select
