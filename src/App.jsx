@@ -420,10 +420,11 @@ function LezioneCard({ slot, onClick }) {
   const style = getTipoStyle(slot.tipo);
   const pieni = slot.postiOccupati >= slot.postiTotali;
   const liberi = slot.postiTotali - slot.postiOccupati;
-  const d = new Date(slot.data + "T00:00:00");
-  const giorno = d.getDate();
-  const mese = d.toLocaleDateString("it-IT", { month: "short" }).replace(".", "").toUpperCase();
-  const weekday = d.toLocaleDateString("it-IT", { weekday: "short" }).replace(".", "").toUpperCase();
+  const d = new Date(String(slot.data).slice(0, 10) + "T00:00:00");
+  const dataValida = !isNaN(d.getTime());
+  const giorno = dataValida ? d.getDate() : "–";
+  const mese = dataValida ? d.toLocaleDateString("it-IT", { month: "short" }).replace(".", "").toUpperCase() : "";
+  const weekday = dataValida ? d.toLocaleDateString("it-IT", { weekday: "short" }).replace(".", "").toUpperCase() : "";
 
   return (
     <button
@@ -820,7 +821,11 @@ function Input({ label, value, onChange, required, icon, type = "text" }) {
 }
 
 function formatData(iso) {
-  const d = new Date(iso + "T00:00:00");
+  if (!iso) return "—";
+  // Se arriva già come data/ora completa (es. da un formato imprevisto), prendo solo la parte AAAA-MM-GG
+  const soloData = String(iso).slice(0, 10);
+  const d = new Date(soloData + "T00:00:00");
+  if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("it-IT", { weekday: "short", day: "numeric", month: "short" });
 }
 
