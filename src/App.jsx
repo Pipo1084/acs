@@ -1,10 +1,8 @@
 import { useState, useMemo, useEffect, Component } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import * as XLSX from "xlsx";
 import {
   PawPrint, Calendar, Clock, Phone, Mail, Lock, CheckCircle2,
   Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical, MoreHorizontal, Share, Download, MapPin, RefreshCw,
-  X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, TrendingUp, LogOut, LogIn, Trash2, Search, FileDown, Printer, Eye, EyeOff
+  X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, LogOut, LogIn, Trash2, Search, Eye, EyeOff
 } from "lucide-react";
 
 /* ============================================================
@@ -1135,14 +1133,23 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
       if (Array.isArray(dati.carnet)) setCarnetTipi(dati.carnet.map(mappaCarnet));
       if (dati.impostazioni && typeof dati.impostazioni.quotaAssociativa === "number") setQuotaAssociativa(dati.impostazioni.quotaAssociativa);
       if (Array.isArray(dati.utenti)) setIstruttori(dati.utenti);
-      if (Array.isArray(dati.log)) {
-        setLog(dati.log.map((r) => ({
+      // Il log NON si carica qui: solo su richiesta, con il tasto "Carica log" in Setup > Utenti
+    } catch (err) {
+      // se fallisce il caricamento, restano visibili i dati precedenti
+    }
+  }
+
+  async function caricaLog() {
+    try {
+      const dati = await chiamaAPIGet("getLog", { username: istruttoreLoggato.username, password: pwd });
+      if (Array.isArray(dati)) {
+        setLog(dati.map((r) => ({
           id: r.id, quando: new Date((r.data_ora || "").replace(" ", "T")),
           istruttore: r.istruttore, azione: r.azione, entita: r.entita, dettaglio: r.dettaglio,
         })));
       }
     } catch (err) {
-      // se fallisce il caricamento, restano visibili i dati precedenti
+      alert("Impossibile contattare il backend per caricare il log.");
     }
   }
 
@@ -1206,7 +1213,6 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const tabs = [
     { key: "anagrafica", label: "🐾 Anagrafica" },
     { key: "lezioni", label: "🦮 Lezioni" },
-    { key: "statistiche", label: "📊 Stats" },
     { key: "impostazioni", label: "⚙️ Setup" },
   ];
 
@@ -1795,104 +1801,6 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
         </div>
       )}
 
-      {tab === "statistiche" && (() => {
-        const incassiTotali = anagrafica.reduce((s, c) => s + c.quotaAssociativa.versato + c.quotaCarnet.versato, 0);
-        const daIncassare = anagrafica.reduce((s, c) =>
-          s + (c.quotaAssociativa.importo - c.quotaAssociativa.versato) + (c.quotaCarnet.importo - c.quotaCarnet.versato), 0);
-        const presenzeTotali = prenotazioni.filter((p) => p.stato === "presente").length;
-        const quoteDaVersare = anagrafica.filter((c) => c.quotaAssociativa.stato === "da versare" || c.quotaCarnet.stato === "da versare").length;
-
-        const perTipo = {};
-        eventi.forEach((slot) => {
-          const presenzeSlot = prenotazioni.filter((p) => p.slotId === slot.id && p.stato === "presente").length;
-          perTipo[slot.tipo] = (perTipo[slot.tipo] || 0) + presenzeSlot;
-        });
-        const chartData = Object.entries(perTipo).map(([tipo, valore]) => ({ tipo, valore }));
-
-        function esportaExcel() {
-          const fogliSoci = anagrafica.map((c) => ({
-            Cane: c.cane, Conduttore: c.conduttore, Telefono: c.telefono, Email: c.email,
-            Specializzazione: c.specializzazione, "Lezioni residue": c.lezioniResidue, "Lezioni totali": c.lezioniTotali,
-          }));
-          const fogliQuote = anagrafica.map((c) => ({
-            Cane: c.cane, Conduttore: c.conduttore,
-            "Quota associativa €": c.quotaAssociativa.importo, "Versato associativa €": c.quotaAssociativa.versato, "Stato associativa": c.quotaAssociativa.stato,
-            "Carnet €": c.quotaCarnet.importo, "Versato carnet €": c.quotaCarnet.versato, "Stato carnet": c.quotaCarnet.stato,
-          }));
-          const fogliPresenze = prenotazioni.filter((p) => p.stato === "presente").map((p) => {
-            const slot = eventi.find((s) => s.id === p.slotId);
-            return {
-              Cliente: p.cliente, Cane: p.cane, Data: slot ? slot.data : "", Ora: slot ? slot.ora : "",
-              Tipo: slot ? slot.tipo : "", "Confermato da": p.confermatoDa || "",
-            };
-          });
-          const wb = XLSX.utils.book_new();
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fogliSoci), "Soci");
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fogliQuote), "Quote");
-          XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(fogliPresenze), "Presenze");
-          XLSX.writeFile(wb, `ACS_report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-          registraLog(istruttoreLoggato.nome, "creazione", "Report", "Esportato report Excel (soci, quote, presenze)");
-        }
-
-        return (
-          <div>
-            <SectionLabel>📤 Report</SectionLabel>
-            <div className="flex gap-2 mb-6">
-              <button onClick={esportaExcel} className="flex-1 rounded-xl border p-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold" style={{ borderColor: "#E2E5E9", color: COLORS.navy }}>
-                <FileDown size={15} color={COLORS.green} /> Esporta Excel
-              </button>
-              <button onClick={() => window.print()} className="flex-1 rounded-xl border p-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold" style={{ borderColor: "#E2E5E9", color: COLORS.navy }}>
-                <Printer size={15} color={COLORS.terracotta} /> Stampa / PDF
-              </button>
-            </div>
-
-            <SectionLabel>Panoramica</SectionLabel>
-            <div className="grid grid-cols-2 gap-2.5 mb-6">
-              <div className="rounded-xl p-3.5" style={{ background: COLORS.navy }}>
-                <Wallet size={16} color="#3ECB6E" />
-                <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: "#fff" }}>€{incassiTotali}</div>
-                <div className="text-[11px]" style={{ color: "#9FB3BF" }}>Incassato</div>
-              </div>
-              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E2E5E9" }}>
-                <AlertCircle size={16} color={COLORS.red} />
-                <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: COLORS.navy }}>€{daIncassare}</div>
-                <div className="text-[11px] text-slate-500">Ancora da incassare</div>
-              </div>
-              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E2E5E9" }}>
-                <Users size={16} color={COLORS.green} />
-                <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: COLORS.navy }}>{presenzeTotali}</div>
-                <div className="text-[11px] text-slate-500">Presenze registrate</div>
-              </div>
-              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E2E5E9" }}>
-                <AlertCircle size={16} color="#F59E0B" />
-                <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: COLORS.navy }}>{quoteDaVersare}</div>
-                <div className="text-[11px] text-slate-500">Soci con quote scoperte</div>
-              </div>
-            </div>
-
-            <SectionLabel>Presenze per tipo di lezione</SectionLabel>
-            {chartData.length === 0 ? (
-              <p className="text-[12px] text-slate-400">Ancora nessuna presenza confermata: usa "Conferma presenza" nella tab Lezioni.</p>
-            ) : (
-              <div className="rounded-xl border p-3" style={{ borderColor: "#E2E5E9", height: 200 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
-                    <XAxis dataKey="tipo" tick={{ fontSize: 10, fill: COLORS.muted }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: COLORS.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: "#F5F6F8" }} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E2E5E9" }} />
-                    <Bar dataKey="valore" radius={[6, 6, 0, 0]}>
-                      {chartData.map((d, i) => (
-                        <Cell key={i} fill={getTipoStyle(d.tipo).accent} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {tab === "impostazioni" && (
         <div>
           {/* Sotto-navigazione: separa nettamente Utenti da Quote */}
@@ -1998,8 +1906,15 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                 </button>
                 {logAperto && (
                   <div className="px-4 pb-4">
+                    <button
+                      onClick={caricaLog}
+                      className="w-full mb-3 rounded-lg py-2 text-[12px] font-bold flex items-center justify-center gap-1.5"
+                      style={{ background: COLORS.navy, color: "#fff", fontFamily: "Oswald, sans-serif" }}
+                    >
+                      <RefreshCw size={13} /> Carica log
+                    </button>
                     {log.length === 0 ? (
-                      <p className="text-[12px] text-slate-400">Nessuna attività registrata in questa sessione.</p>
+                      <p className="text-[12px] text-slate-400">Premi "Carica log" per vedere le ultime attività registrate.</p>
                     ) : (
                       <div className="space-y-1.5 max-h-80 overflow-y-auto pr-0.5">
                         {log.map((voce) => {
