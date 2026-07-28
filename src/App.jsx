@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, Component } from "react";
 import {
   PawPrint, Calendar, Clock, Phone, Mail, Lock, CheckCircle2,
   Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical, MoreHorizontal, Share, Download, MapPin, RefreshCw,
-  X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, LogOut, LogIn, Trash2, Search, Eye, EyeOff
+  X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, LogOut, LogIn, Trash2, Search, Eye, EyeOff, AlertTriangle
 } from "lucide-react";
 
 /* ============================================================
@@ -195,12 +195,12 @@ function SectionLabel({ children }) {
   );
 }
 
-function PrimaryButton({ children, onClick, full, color = COLORS.green, ...props }) {
+function PrimaryButton({ children, onClick, full, color = COLORS.green, style, ...props }) {
   return (
     <button
       onClick={onClick}
       className={`${full ? "w-full" : ""} inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-white text-[14px] font-bold transition active:scale-[0.97]`}
-      style={{ backgroundColor: color, fontFamily: "Oswald, sans-serif", letterSpacing: "0.02em" }}
+      style={{ backgroundColor: color, fontFamily: "Oswald, sans-serif", letterSpacing: "0.02em", ...style }}
       {...props}
     >
       {children}
@@ -266,28 +266,84 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   const [form, setForm] = useState({ nome: "", telefono: "", cane: "", razza: "", eta: "", consensoPrivacy: false, consensoFotoVideo: false });
   const [caneAperto, setCaneAperto] = useState(null);
   const [informativaAperta, setInformativaAperta] = useState(null);
+  const [riconoscimento, setRiconoscimento] = useState({ stato: "vuoto", socio: false, ambiguo: false, metodo: "" });
 
   function normalizza(s) {
     return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
   }
 
-  function trovaUtente({ nome, telefono, cane }) {
-    // chiamaAPI_riconosciUtente({ nome, telefono, cane }) -> il backend farà lo stesso controllo
-    const tokenInput = String(nome || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
-    return anagrafica.find((c) => {
-      const tokenStore = String(c.conduttore || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
-      const nomeCombacia = tokenInput.some((t) => tokenStore.includes(t)); // basta nome O cognome
-      return (
-        nomeCombacia &&
-        normalizza(c.cane) === normalizza(cane) &&
-        normalizza(c.telefono) === normalizza(telefono)
-      );
-    }) || null;
+  function normalizzaTelefono(valore) {
+    let numero = String(valore || "").replace(/\D/g, "");
+    if (numero.length > 10 && numero.startsWith("39")) numero = numero.slice(2);
+    return numero;
   }
 
-  const campiBaseCompleti = form.nome.trim() && form.telefono.trim() && form.cane.trim();
-  const matchInCorso = campiBaseCompleti ? trovaUtente(form) : null;
-  const sembraNuovo = campiBaseCompleti && !matchInCorso;
+  function tokenNome(valore) {
+    return String(valore || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .split(/[^a-z0-9]+/)
+      .filter(Boolean);
+  }
+
+  function trovaUtenteLocale({ nome, telefono, cane }) {
+    const caneNormalizzato = normalizza(cane);
+    const telefonoNormalizzato = normalizzaTelefono(telefono);
+
+    const perTelefonoCane = anagrafica.filter((c) =>
+      normalizza(c.cane) === caneNormalizzato &&
+      normalizzaTelefono(c.telefono) === telefonoNormalizzato
+    );
+    if (perTelefonoCane.length === 1) return { socio: true, ambiguo: false, metodo: "telefono_cane" };
+    if (perTelefonoCane.length > 1) return { socio: false, ambiguo: true, metodo: "telefono_cane" };
+
+    const tokenInput = tokenNome(nome);
+    const perNomeCane = anagrafica.filter((c) => {
+      if (normalizza(c.cane) !== caneNormalizzato) return false;
+      const tokenStore = tokenNome(c.conduttore);
+      return tokenInput.some((t) => tokenStore.includes(t));
+    });
+    if (perNomeCane.length === 1) return { socio: true, ambiguo: false, metodo: "nome_o_cognome_cane" };
+    if (perNomeCane.length > 1) return { socio: false, ambiguo: true, metodo: "nome_o_cognome_cane" };
+    return { socio: false, ambiguo: false, metodo: "" };
+  }
+
+  const campiBaseCompleti = Boolean(form.nome.trim() && form.telefono.trim() && form.cane.trim());
+
+  useEffect(() => {
+    if (!campiBaseCompleti) {
+      setRiconoscimento({ stato: "vuoto", socio: false, ambiguo: false, metodo: "" });
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setRiconoscimento({ stato: "controllo", socio: false, ambiguo: false, metodo: "" });
+      try {
+        const risposta = await chiamaAPI("riconosciUtentePubblico", {
+          clienteNome: form.nome,
+          clienteTelefono: form.telefono,
+          caneNome: form.cane,
+        });
+        setRiconoscimento({
+          stato: "completato",
+          socio: risposta?.ok === true && risposta?.riconosciuto === true,
+          ambiguo: risposta?.ok === true && risposta?.ambiguo === true,
+          metodo: risposta?.metodo || "",
+        });
+      } catch {
+        // Fallback utile se l'area istruttore ha già caricato l'anagrafica nello stesso browser.
+        const locale = trovaUtenteLocale(form);
+        setRiconoscimento({ stato: "completato", ...locale });
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [form.nome, form.telefono, form.cane]);
+
+  const sembraNuovo = campiBaseCompleti && riconoscimento.stato === "completato" && !riconoscimento.socio && !riconoscimento.ambiguo;
+
 
   async function prenota(e) {
     e.preventDefault();
@@ -295,7 +351,15 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
       alert("Per proseguire devi dichiarare di aver letto l’informativa privacy.");
       return;
     }
-    const match = trovaUtente(form);
+    if (riconoscimento.stato === "controllo") {
+      alert("Attendi un momento: sto verificando i dati nell’anagrafica.");
+      return;
+    }
+    if (riconoscimento.ambiguo) {
+      alert("Sono state trovate più anagrafiche compatibili. Contatta la segreteria per verificare i dati prima di prenotare.");
+      return;
+    }
+    const match = riconoscimento.socio ? { riconosciuto: true } : null;
 
     try {
       const risposta = await chiamaAPI("creaPrenotazione", {
@@ -372,6 +436,23 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
           <Input label="Telefono" value={form.telefono} onChange={(v) => setForm({ ...form, telefono: v })} required icon={<Phone size={14} />} />
           <Input label="Nome del cane" value={form.cane} onChange={(v) => setForm({ ...form, cane: v })} required icon={<PawPrint size={14} />} />
 
+          {campiBaseCompleti && riconoscimento.stato === "controllo" && (
+            <div className="rounded-xl px-3.5 py-2.5 text-[12px] flex items-center gap-2" style={{ background: "#EEF3F5", color: COLORS.muted }}>
+              <RefreshCw size={14} className="acs-spin" /> Verifica nell’anagrafica in corso…
+            </div>
+          )}
+          {campiBaseCompleti && riconoscimento.stato === "completato" && riconoscimento.socio && (
+            <div className="rounded-xl px-3.5 py-2.5 text-[12px] font-semibold flex items-center gap-2" style={{ background: "#E7F6EC", color: COLORS.green }}>
+              <CheckCircle2 size={15} /> Socio riconosciuto: puoi prenotare direttamente.
+            </div>
+          )}
+          {campiBaseCompleti && riconoscimento.stato === "completato" && riconoscimento.ambiguo && (
+            <div className="rounded-xl px-3.5 py-2.5 text-[12px] font-semibold flex items-start gap-2" style={{ background: "#FFF3D8", color: "#8A5A00" }}>
+              <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+              <span>Sono state trovate più anagrafiche compatibili. Contatta la segreteria per verificare i dati.</span>
+            </div>
+          )}
+
           {sembraNuovo && (
             <div className="rounded-xl p-3.5 space-y-3" style={{ background: "#F3DDCE" }}>
               <div className="text-[12px] font-semibold flex items-center gap-1.5" style={{ color: COLORS.terracotta }}>
@@ -432,7 +513,15 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
             </div>
           </div>
 
-          <PrimaryButton full disabled={!form.consensoPrivacy} style={{ opacity: form.consensoPrivacy ? 1 : 0.5, cursor: form.consensoPrivacy ? "pointer" : "not-allowed" }}>
+          <PrimaryButton
+            type="submit"
+            full
+            disabled={!form.consensoPrivacy || riconoscimento.stato === "controllo" || riconoscimento.ambiguo}
+            style={{
+              opacity: form.consensoPrivacy && riconoscimento.stato !== "controllo" && !riconoscimento.ambiguo ? 1 : 0.5,
+              cursor: form.consensoPrivacy && riconoscimento.stato !== "controllo" && !riconoscimento.ambiguo ? "pointer" : "not-allowed",
+            }}
+          >
             Conferma prenotazione
           </PrimaryButton>
           <p className="text-[11px] text-center text-slate-400 pt-1">
