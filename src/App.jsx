@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import * as XLSX from "xlsx";
 import {
   PawPrint, Calendar, Clock, Phone, Mail, Lock, CheckCircle2,
-  Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical,
+  Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical, MoreHorizontal, Share, Download, MapPin,
   X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, TrendingUp, LogOut, LogIn, Trash2, Search, FileDown, Printer, Eye, EyeOff
 } from "lucide-react";
 
@@ -39,7 +39,7 @@ async function chiamaAPIGet(action, params = {}) {
 // (snake_case): queste funzioni le convertono nella forma usata dal frontend.
 function mappaEvento(r) {
   return {
-    id: r.id, data: r.data, ora: r.ora, tipo: r.tipo_lezione,
+    id: r.id, data: r.data, ora: r.ora, tipo: r.tipo_lezione, luogo: r.luogo || "",
     postiTotali: Number(r.posti_totali) || 0, postiOccupati: Number(r.posti_occupati) || 0,
   };
 }
@@ -181,7 +181,7 @@ function PrimaryButton({ children, onClick, full, color = COLORS.green, ...props
 function Header({ role, setRole, onOpenInstall }) {
   return (
     <div style={{ background: `linear-gradient(155deg, ${COLORS.navy} 0%, ${COLORS.navyDeep} 100%)` }} className="sticky top-0 z-20">
-      <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
+      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-4 pb-3 flex items-center gap-3">
         <Badge size={44} />
         <div className="flex-1 min-w-0">
           <div className="text-white font-bold text-xl leading-none tracking-wide flex items-center gap-1.5" style={{ fontFamily: "Oswald, sans-serif" }}>
@@ -195,7 +195,7 @@ function Header({ role, setRole, onOpenInstall }) {
           <Smartphone size={18} color="#DCE7E9" />
         </button>
       </div>
-      <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 pb-3 flex gap-2">
+      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pb-3 flex gap-2">
         {[
           { key: "cliente", label: "Area cliente", emoji: "🐶" },
           { key: "istruttore", label: "Area istruttore", emoji: "🦮" },
@@ -282,7 +282,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   if (slotScelto) {
     const partecipanti = prenotazioni.filter((p) => p.slotId === slotScelto.id && p.stato !== "in sospeso");
     return (
-      <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 py-5">
+      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-5">
         <button onClick={() => setSlotScelto(null)} className="flex items-center gap-1 text-sm mb-4" style={{ color: COLORS.navy }}>
           <ArrowLeft size={16} /> Torna alle lezioni
         </button>
@@ -337,7 +337,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   if (prenotato) {
     const partecipanti = prenotazioni.filter((p) => p.slotId === prenotato.id && p.stato !== "in sospeso");
     return (
-      <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 py-10 text-center">
+      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-10 text-center">
         <div className="w-14 h-14 mx-auto rounded-full grid place-items-center mb-4" style={{ background: inSospeso ? "#F3DDCE" : "#E7F6EC" }}>
           {inSospeso ? <span style={{ fontSize: 26 }}>⏳</span> : <CheckCircle2 size={28} color={COLORS.green} />}
         </div>
@@ -387,7 +387,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   }
 
   return (
-    <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 py-5">
+    <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-5">
       <div className="mb-5">
         <div className="text-2xl font-bold leading-tight flex items-center gap-2" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
           Prenota una lezione <span>🐶</span>
@@ -438,8 +438,9 @@ function LezioneCard({ slot, onClick }) {
         <div className="font-bold text-[16px] flex items-center gap-1.5" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
           <span>{style.emoji}</span> {slot.tipo}
         </div>
-        <div className="text-[12.5px] mt-1 flex items-center gap-1 font-semibold" style={{ color: style.accent }}>
-          <Clock size={12} /> {slot.ora}
+        <div className="text-[12.5px] mt-1 flex items-center gap-2.5 font-semibold" style={{ color: style.accent }}>
+          <span className="flex items-center gap-1"><Clock size={12} /> {slot.ora}</span>
+          {slot.luogo && <span className="flex items-center gap-1 truncate"><MapPin size={12} /> {slot.luogo}</span>}
         </div>
         <div className="text-[11.5px] mt-1 font-medium" style={{ color: pieni ? COLORS.red : COLORS.muted }}>
           {pieni ? "😔 Al completo" : `🐾 ${liberi} post${liberi === 1 ? "o" : "i"} liber${liberi === 1 ? "o" : "i"}`}
@@ -462,7 +463,7 @@ function StoricoCaneDettaglio({ caneNome, onBack }) {
   const voci = MOCK_STORICO[caneNome] || [];
 
   return (
-    <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 py-5">
+    <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-5">
       <button onClick={onBack} className="flex items-center gap-1 text-sm mb-4" style={{ color: COLORS.navy }}>
         <ArrowLeft size={16} /> Storico lezioni
       </button>
@@ -795,6 +796,7 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
             <div className="text-[11px] text-slate-500 flex items-center gap-2.5 mt-0.5">
               <span className="flex items-center gap-1 shrink-0"><Calendar size={11} /> {formatData(slot.data)}</span>
               <span className="flex items-center gap-1 shrink-0"><Clock size={11} /> {slot.ora}</span>
+              {slot.luogo && <span className="flex items-center gap-1 truncate"><MapPin size={11} /> {slot.luogo}</span>}
             </div>
           </div>
           <div className="shrink-0 flex items-center gap-2">
@@ -868,6 +870,49 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
   );
 }
 
+function CarnetRow({ c, onSave, onDelete, puoModificare }) {
+  const [modifica, setModifica] = useState(false);
+  const [bozza, setBozza] = useState(c);
+
+  if (modifica) {
+    return (
+      <div className="rounded-xl p-3.5 space-y-2" style={{ background: "#FAF6EC" }}>
+        <Input label="Nome tipologia" value={bozza.nome} onChange={(v) => setBozza({ ...bozza, nome: v })} required />
+        <div className="grid grid-cols-2 gap-2">
+          <Input label="N. lezioni" value={String(bozza.numeroLezioni)} onChange={(v) => setBozza({ ...bozza, numeroLezioni: v.replace(/\D/g, "") })} required />
+          <Input label="Prezzo €" value={String(bozza.prezzo)} onChange={(v) => setBozza({ ...bozza, prezzo: v.replace(/\D/g, "") })} required />
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button onClick={() => { onSave(bozza); setModifica(false); }} className="text-[12px] font-semibold" style={{ color: COLORS.green }}>Salva</button>
+          <button onClick={() => { setBozza(c); setModifica(false); }} className="text-[12px]" style={{ color: COLORS.muted }}>Annulla</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl p-3.5 flex items-center justify-between gap-2" style={{ background: "#FAF6EC" }}>
+      <div className="min-w-0">
+        <div className="font-semibold text-sm truncate" style={{ color: COLORS.navy }}>{c.nome}</div>
+        <div className="text-[12px] text-slate-500">{c.numeroLezioni} lezion{c.numeroLezioni === 1 ? "e" : "i"}</div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{c.prezzo}</div>
+        {puoModificare && (
+          <>
+            <button onClick={() => setModifica(true)} title="Modifica" className="w-7 h-7 rounded-full grid place-items-center" style={{ background: "#EFE7D6" }}>
+              <Pencil size={12} color={COLORS.navy} />
+            </button>
+            <button onClick={onDelete} title="Elimina" className="w-7 h-7 rounded-full grid place-items-center" style={{ background: "#FDECEA" }}>
+              <Trash2 size={12} color={COLORS.red} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagrafica, setAnagrafica }) {
   const [auth, setAuth] = useState(false);
   const [istruttoreLoggato, setIstruttoreLoggato] = useState(null);
@@ -877,13 +922,15 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const [erroreMessaggio, setErroreMessaggio] = useState("");
   const [tab, setTab] = useState("anagrafica");
   const [nuovoEvento, setNuovoEvento] = useState(false);
-  const [formEvento, setFormEvento] = useState({ data: "", ora: "", tipo: "", postiTotali: "" });
+  const [formEvento, setFormEvento] = useState({ data: "", ora: "", tipo: "", luogo: "", postiTotali: "" });
   const [carnetTipi, setCarnetTipi] = useState(MOCK_CARNET);
   const [nuovoCarnet, setNuovoCarnet] = useState(false);
   const [formCarnet, setFormCarnet] = useState({ nome: "", numeroLezioni: "", prezzo: "" });
   const [quotaAssociativa, setQuotaAssociativa] = useState(50);
   const [modificaQuota, setModificaQuota] = useState(false);
   const [ricercaAnagrafica, setRicercaAnagrafica] = useState("");
+  const [nuovoCane, setNuovoCane] = useState(false);
+  const [formCane, setFormCane] = useState({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "" });
   const [settoreSetup, setSettoreSetup] = useState("utenti");
   const [logAperto, setLogAperto] = useState(false);
   const [filtroAnagrafica, setFiltroAnagrafica] = useState("tutti");
@@ -963,7 +1010,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
   if (!auth) {
     return (
-      <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 py-14">
+      <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-14">
         <div className="w-14 h-14 mx-auto rounded-full grid place-items-center mb-4" style={{ background: COLORS.navy }}>
           <ShieldCheck size={24} color="#3ECB6E" />
         </div>
@@ -1092,17 +1139,17 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     e.preventDefault();
     try {
       const risposta = await chiamaAPI("apriDisponibilita", {
-        data: formEvento.data, ora: formEvento.ora, tipoLezione: formEvento.tipo,
+        data: formEvento.data, ora: formEvento.ora, tipoLezione: formEvento.tipo, luogo: formEvento.luogo,
         postiTotali: Number(formEvento.postiTotali) || 1,
         username: istruttoreLoggato.username, password: pwd,
       });
       if (risposta.ok) {
         setEventi((prev) => [
           ...prev,
-          { id: risposta.id, data: formEvento.data, ora: formEvento.ora, tipo: formEvento.tipo, postiTotali: Number(formEvento.postiTotali) || 1, postiOccupati: 0 },
+          { id: risposta.id, data: formEvento.data, ora: formEvento.ora, tipo: formEvento.tipo, luogo: formEvento.luogo, postiTotali: Number(formEvento.postiTotali) || 1, postiOccupati: 0 },
         ]);
-        registraLog(istruttoreLoggato.nome, "creazione", "Lezione", `${formEvento.tipo} il ${formEvento.data} alle ${formEvento.ora}`);
-        setFormEvento({ data: "", ora: "", tipo: "", postiTotali: "" });
+        registraLog(istruttoreLoggato.nome, "creazione", "Lezione", `${formEvento.tipo} il ${formEvento.data} alle ${formEvento.ora} (${formEvento.luogo || "luogo non indicato"})`);
+        setFormEvento({ data: "", ora: "", tipo: "", luogo: "", postiTotali: "" });
         setNuovoEvento(false);
       } else {
         alert(risposta.errore || "Non è stato possibile creare l'evento.");
@@ -1116,6 +1163,36 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     setAnagrafica((prev) => prev.map((c) => (c.cane === caneNome ? { ...c, ...nuoviDati } : c)));
     registraLog(istruttoreLoggato.nome, "modifica", "Anagrafica", `Scheda di ${caneNome} aggiornata`);
     // chiamaAPI_aggiornaAnagrafica({ caneNome, ...nuoviDati, password })
+  }
+
+  async function creaCane(e) {
+    e.preventDefault();
+    try {
+      const risposta = await chiamaAPI("creaCane", {
+        caneNome: formCane.cane, conduttore: formCane.conduttore, telefono: formCane.telefono, email: formCane.email,
+        razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione,
+        username: istruttoreLoggato.username, password: pwd,
+      });
+      if (risposta.ok) {
+        setAnagrafica((prev) => [
+          ...prev,
+          {
+            cane: formCane.cane, conduttore: formCane.conduttore, telefono: formCane.telefono, email: formCane.email,
+            razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione, microchip: "",
+            lezioniResidue: 0, lezioniTotali: 0,
+            quotaAssociativa: { importo: 0, versato: 0, scadenza: "", stato: "da versare" },
+            quotaCarnet: { importo: 0, versato: 0, scadenza: "", stato: "da versare" },
+          },
+        ]);
+        registraLog(istruttoreLoggato.nome, "creazione", "Anagrafica", `Nuova scheda: ${formCane.cane} (${formCane.conduttore})`);
+        setFormCane({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "" });
+        setNuovoCane(false);
+      } else {
+        alert(risposta.errore || "Non è stato possibile creare la scheda.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
   }
 
   async function eliminaCane(caneNome) {
@@ -1170,6 +1247,38 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     }
   }
 
+  async function modificaCarnet(carnetId, nuoviDati) {
+    try {
+      const risposta = await chiamaAPI("modificaCarnet", {
+        carnetId, nome: nuoviDati.nome, numeroLezioni: Number(nuoviDati.numeroLezioni) || 1, prezzo: Number(nuoviDati.prezzo) || 0,
+        username: istruttoreLoggato.username, password: pwd,
+      });
+      if (risposta.ok) {
+        setCarnetTipi((prev) => prev.map((c) => (c.id === carnetId ? { ...c, ...nuoviDati, numeroLezioni: Number(nuoviDati.numeroLezioni) || 1, prezzo: Number(nuoviDati.prezzo) || 0 } : c)));
+        registraLog(istruttoreLoggato.nome, "modifica", "Carnet", `Tipologia aggiornata: ${nuoviDati.nome}`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile modificare la tipologia.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
+  }
+
+  async function eliminaCarnet(carnetId, nome) {
+    if (!window.confirm(`Eliminare la tipologia "${nome}"?`)) return;
+    try {
+      const risposta = await chiamaAPI("eliminaCarnet", { carnetId, username: istruttoreLoggato.username, password: pwd });
+      if (risposta.ok) {
+        setCarnetTipi((prev) => prev.filter((c) => c.id !== carnetId));
+        registraLog(istruttoreLoggato.nome, "eliminazione", "Carnet", `Eliminata tipologia: ${nome}`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile eliminare la tipologia.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
+  }
+
   function salvaQuotaAssociativa() {
     setQuotaAssociativa(Number(bozzaQuota) || 0);
     registraLog(istruttoreLoggato.nome, "modifica", "Quota associativa", `Importo aggiornato a €${bozzaQuota}`);
@@ -1178,7 +1287,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   }
 
   return (
-    <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 py-5">
+    <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-5">
       <div className="flex items-center justify-between mb-3.5">
         <div className="text-[12.5px]" style={{ color: COLORS.muted }}>
           Ciao, <b style={{ color: COLORS.navy }}>{istruttoreLoggato.nome}</b>
@@ -1251,6 +1360,35 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
               ))}
             </div>
 
+            {puoModificare && (
+              nuovoCane ? (
+                <form onSubmit={creaCane} className="rounded-2xl border p-4 mb-3 space-y-3" style={{ borderColor: "#E4DCC8" }}>
+                  <div className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
+                    🐶 Nuova scheda
+                  </div>
+                  <Input label="Nome cane" value={formCane.cane} onChange={(v) => setFormCane({ ...formCane, cane: v })} required icon={<PawPrint size={13} />} />
+                  <Input label="Nome conduttore" value={formCane.conduttore} onChange={(v) => setFormCane({ ...formCane, conduttore: v })} required />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input label="Telefono" value={formCane.telefono} onChange={(v) => setFormCane({ ...formCane, telefono: v })} icon={<Phone size={13} />} />
+                    <Input label="Email" value={formCane.email} onChange={(v) => setFormCane({ ...formCane, email: v })} icon={<Mail size={13} />} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input label="Razza" value={formCane.razza} onChange={(v) => setFormCane({ ...formCane, razza: v })} />
+                    <Input label="Età" value={formCane.eta} onChange={(v) => setFormCane({ ...formCane, eta: v })} />
+                  </div>
+                  <Input label="Specializzazione" value={formCane.specializzazione} onChange={(v) => setFormCane({ ...formCane, specializzazione: v })} icon={<Award size={13} />} />
+                  <div className="flex gap-3">
+                    <PrimaryButton color={COLORS.navy}>Crea scheda</PrimaryButton>
+                    <button type="button" onClick={() => setNuovoCane(false)} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
+                  </div>
+                </form>
+              ) : (
+                <button onClick={() => setNuovoCane(true)} className="w-full rounded-2xl border border-dashed p-3.5 text-[13px] font-semibold flex items-center justify-center gap-1.5 mb-3" style={{ borderColor: "#C7BFA3", color: COLORS.muted }}>
+                  <Plus size={15} /> Nuovo cane / cliente
+                </button>
+              )
+            )}
+
             {filtrati.length === 0 && (
               <p className="text-[12px] text-slate-400">🐾 Nessun cane corrisponde alla ricerca.</p>
             )}
@@ -1298,6 +1436,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                     className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
                 </label>
               </div>
+              <Input label="Luogo" value={formEvento.luogo} onChange={(v) => setFormEvento({ ...formEvento, luogo: v })} icon={<MapPin size={13} />} />
               <Input label="Posti disponibili" value={formEvento.postiTotali} onChange={(v) => setFormEvento({ ...formEvento, postiTotali: v.replace(/\D/g, "") })} required />
               <PrimaryButton full color={COLORS.navy}>Crea evento</PrimaryButton>
             </form>
@@ -1595,13 +1734,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                 <SectionLabel>🎫 Tipi di carnet e prezzi</SectionLabel>
                 <div className="space-y-2 mb-3">
                   {carnetTipi.map((c) => (
-                    <div key={c.id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ background: "#FAF6EC" }}>
-                      <div>
-                        <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>{c.nome}</div>
-                        <div className="text-[12px] text-slate-500">{c.numeroLezioni} lezion{c.numeroLezioni === 1 ? "e" : "i"}</div>
-                      </div>
-                      <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{c.prezzo}</div>
-                    </div>
+                    <CarnetRow key={c.id} c={c} onSave={(nuoviDati) => modificaCarnet(c.id, nuoviDati)} onDelete={() => eliminaCarnet(c.id, c.nome)} puoModificare={puoModificare} />
                   ))}
                 </div>
 
@@ -1668,31 +1801,37 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 /* ---------- Istruzioni "Aggiungi a Home" ---------- */
 
 function rilevaPiattaforma() {
-  if (typeof navigator === "undefined") return "safari";
+  if (typeof navigator === "undefined") return "desktop";
   const ua = navigator.userAgent || "";
   const isIOS = /iPad|iPhone|iPod/.test(ua);
   if (isIOS) return /CriOS/.test(ua) ? "chrome" : "safari";
-  return "android";
+  const isAndroid = /Android/.test(ua);
+  if (isAndroid) return "android";
+  return "desktop";
 }
 
 function InstallBanner({ onClose }) {
   const [os, setOs] = useState(rilevaPiattaforma);
   const testi = {
+    desktop: {
+      pill: "💻 Desktop",
+      linea: <>Cerca l'icona di installazione <Download size={13} className="inline -mt-0.5 mx-0.5" /> nella barra degli indirizzi (Chrome/Edge), oppure apri il menu del browser e scegli <b>"Installa app"</b></>,
+    },
     android: {
       pill: "Android",
       linea: <>Tocca <MoreVertical size={13} className="inline -mt-0.5 mx-0.5" /> in alto a destra, poi <b>"Aggiungi a schermata Home"</b></>,
     },
     safari: {
       pill: "iPhone · Safari",
-      linea: <>Tocca <MoreVertical size={13} className="inline -mt-0.5 mx-0.5" /> in basso a destra, poi <Share2 size={13} className="inline -mt-0.5 mx-0.5" /> <b>Condividi</b>, poi <b>"Aggiungi a Home"</b></>,
+      linea: <>Tocca <MoreHorizontal size={13} className="inline -mt-0.5 mx-0.5" /> in basso a destra, poi <Share size={13} className="inline -mt-0.5 mx-0.5" /> <b>Condividi</b>, poi <b>"Aggiungi a Home"</b></>,
     },
     chrome: {
       pill: "iPhone · Chrome",
-      linea: <>Tocca <Share2 size={13} className="inline -mt-0.5 mx-0.5" /> <b>Condividi</b> accanto alla barra, poi <b>"Aggiungi a Home"</b></>,
+      linea: <>Tocca <Share size={13} className="inline -mt-0.5 mx-0.5" /> <b>Condividi</b> accanto alla barra, poi <b>"Aggiungi a Home"</b></>,
     },
   };
   return (
-    <div className="max-w-md sm:max-w-2xl lg:max-w-4xl mx-auto px-4 pt-3">
+    <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-3">
       <div className="rounded-lg border flex items-center gap-2.5 px-3 py-2 relative" style={{ background: "#EAF3FA", borderColor: "#CFE3F0" }}>
         <img src={LOGO_ACS} alt="Logo ACS" className="w-8 h-8 rounded-lg shrink-0 object-contain bg-white" />
         <div className="flex-1 min-w-0 pr-4">
