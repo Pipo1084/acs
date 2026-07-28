@@ -548,7 +548,7 @@ function DogAvatar({ size = 52, bg = COLORS.navy, iconColor = "#3ECB6E" }) {
   );
 }
 
-function AnagraficaCard({ c, onUpdate, storico, onAddStorico, puoModificare = true }) {
+function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, puoModificare = true }) {
   const [aperto, setAperto] = useState(false);
   const [modifica, setModifica] = useState(false);
   const [bozza, setBozza] = useState(c);
@@ -586,7 +586,16 @@ function AnagraficaCard({ c, onUpdate, storico, onAddStorico, puoModificare = tr
 
       {aperto && (
         <div className="px-4 pb-4 space-y-4" style={{ borderTop: "1px solid #E4DCC8" }}>
-          <div className="flex items-center justify-end pt-3">
+          <div className="flex items-center justify-between pt-3">
+            {puoModificare && (
+              <button
+                onClick={() => { if (window.confirm(`Eliminare definitivamente la scheda di ${c.cane}?`)) onDelete(); }}
+                className="text-[12px] font-semibold flex items-center gap-1"
+                style={{ color: COLORS.red }}
+              >
+                <Trash2 size={13} /> Elimina
+              </button>
+            )}
             {!puoModificare ? null : !modifica ? (
               <button onClick={() => { setBozza(c); setModifica(true); }} className="text-[12px] font-semibold flex items-center gap-1" style={{ color: COLORS.navy }}>
                 <Pencil size={13} /> Modifica dati
@@ -735,7 +744,7 @@ function formatData(iso) {
 
 /* ---------- Vista Istruttore ---------- */
 
-function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPresenza, puoModificare = true }) {
+function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPresenza, onDelete, puoModificare = true }) {
   const [aperto, setAperto] = useState(false);
   const style = getTipoStyle(slot.tipo);
   const pieni = slot.postiOccupati >= slot.postiTotali;
@@ -803,6 +812,20 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
               );
             })}
           </div>
+          {puoModificare && (
+            <button
+              onClick={() => {
+                const messaggio = iscrizioni.length > 0
+                  ? `Questo evento ha ${iscrizioni.length} iscrizione/i: eliminandolo si cancellano anche quelle. Continuare?`
+                  : "Eliminare questo evento?";
+                if (window.confirm(messaggio)) onDelete();
+              }}
+              className="mt-3 text-[11.5px] font-semibold flex items-center gap-1"
+              style={{ color: COLORS.red }}
+            >
+              <Trash2 size={13} /> Elimina evento
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -825,6 +848,8 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const [quotaAssociativa, setQuotaAssociativa] = useState(50);
   const [modificaQuota, setModificaQuota] = useState(false);
   const [ricercaAnagrafica, setRicercaAnagrafica] = useState("");
+  const [settoreSetup, setSettoreSetup] = useState("utenti");
+  const [logAperto, setLogAperto] = useState(false);
   const [filtroAnagrafica, setFiltroAnagrafica] = useState("tutti");
   const [bozzaQuota, setBozzaQuota] = useState(50);
   const [storico, setStorico] = useState(MOCK_STORICO);
@@ -1036,6 +1061,35 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     // chiamaAPI_aggiornaAnagrafica({ caneNome, ...nuoviDati, password })
   }
 
+  async function eliminaCane(caneNome) {
+    try {
+      const risposta = await chiamaAPI("eliminaCane", { caneNome, username: istruttoreLoggato.username, password: pwd });
+      if (risposta.ok) {
+        setAnagrafica((prev) => prev.filter((c) => c.cane !== caneNome));
+        registraLog(istruttoreLoggato.nome, "eliminazione", "Anagrafica", `Eliminata scheda di ${caneNome}`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile eliminare la scheda.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
+  }
+
+  async function eliminaEvento(eventoId) {
+    try {
+      const risposta = await chiamaAPI("eliminaEvento", { eventoId, username: istruttoreLoggato.username, password: pwd });
+      if (risposta.ok) {
+        setEventi((prev) => prev.filter((s) => s.id !== eventoId));
+        setPrenotazioni((prev) => prev.filter((p) => p.slotId !== eventoId));
+        registraLog(istruttoreLoggato.nome, "eliminazione", "Lezione", `Eliminato evento (id ${eventoId})`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile eliminare l'evento.");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
+  }
+
   function creaCarnet(e) {
     e.preventDefault();
     // chiamaAPI_creaCarnet(formCarnet)
@@ -1139,6 +1193,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                   key={c.cane}
                   c={c}
                   onUpdate={(nuoviDati) => aggiornaCane(c.cane, nuoviDati)}
+                  onDelete={() => eliminaCane(c.cane)}
                   storico={storico[c.cane]}
                   onAddStorico={(voce) => aggiungiStorico(c.cane, voce)}
                   puoModificare={puoModificare}
@@ -1220,7 +1275,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
             {eventi.map((slot) => {
               const iscrizioni = prenotazioni.filter((p) => p.slotId === slot.id && p.stato !== "in sospeso");
               const daConfermare = iscrizioni.filter((p) => p.stato !== "presente").length;
-              return <EventoCard key={slot.id} slot={slot} iscrizioni={iscrizioni} daConfermare={daConfermare} anagrafica={anagrafica} onConfermaPresenza={confermaPresenza} puoModificare={puoModificare} />;
+              return <EventoCard key={slot.id} slot={slot} iscrizioni={iscrizioni} daConfermare={daConfermare} anagrafica={anagrafica} onConfermaPresenza={confermaPresenza} onDelete={() => eliminaEvento(slot.id)} puoModificare={puoModificare} />;
             })}
           </div>
         </div>
@@ -1325,185 +1380,217 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
       })()}
 
       {tab === "impostazioni" && (
-        <div className="space-y-7">
+        <div>
+          {/* Sotto-navigazione: separa nettamente Utenti da Quote */}
+          <div className="flex gap-2 mb-5">
+            {[
+              { key: "utenti", label: "👤 Utenti" },
+              { key: "quote", label: "💳 Quote" },
+            ].map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setSettoreSetup(s.key)}
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold"
+                style={{
+                  fontFamily: "Oswald, sans-serif",
+                  background: settoreSetup === s.key ? COLORS.navy : "#EFE7D6",
+                  color: settoreSetup === s.key ? "#fff" : COLORS.navy,
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
           {/* ============ SEZIONE UTENTI ============ */}
-          <div>
-            <div className="text-lg font-bold flex items-center gap-2 mb-3" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
-              👤 Utenti
-            </div>
-
-            <div className="space-y-2 mb-3">
-              {istruttori.map((i) => {
-                const ruoloStile = {
-                  admin: { color: COLORS.terracotta, label: "Admin" },
-                  modificatore: { color: COLORS.green, label: "Modificatore" },
-                  lettura: { color: COLORS.muted, label: "Lettura" },
-                }[i.ruolo] || { color: COLORS.muted, label: i.ruolo };
-                return (
-                  <div key={i.username} className="rounded-xl border p-3.5 flex items-center gap-3" style={{ borderColor: "#E4DCC8" }}>
-                    <div className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: COLORS.navy }}>
-                      <Users size={15} color="#3ECB6E" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[13px] font-semibold truncate" style={{ color: COLORS.navy }}>
-                        {i.nome} {i.username === istruttoreLoggato.username && <span className="font-normal" style={{ color: COLORS.muted }}>(tu)</span>}
-                      </div>
-                      <div className="text-[11.5px] text-slate-500 truncate">@{i.username}</div>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full uppercase shrink-0" style={{ background: `${ruoloStile.color}1A`, color: ruoloStile.color }}>
-                      {ruoloStile.label}
-                    </span>
-                    {isAdmin && i.username !== istruttoreLoggato.username && (
-                      <button onClick={() => eliminaIstruttore(i.username)} title="Elimina utente" className="shrink-0 w-7 h-7 rounded-full grid place-items-center" style={{ background: "#FDECEA" }}>
-                        <Trash2 size={13} color={COLORS.red} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {istruttori.length === 0 && (
-              <p className="text-[11.5px] text-slate-400 mb-3">🐾 Nessun utente da mostrare (o la lista si sta ancora caricando).</p>
-            )}
-
-            {isAdmin ? (
-              nuovoIstruttore ? (
-                <form onSubmit={creaIstruttore} className="rounded-xl border p-4 space-y-3" style={{ borderColor: "#E4DCC8" }}>
-                  <Input label="Nome" value={formIstruttore.nome} onChange={(v) => setFormIstruttore({ ...formIstruttore, nome: v })} required />
-                  <Input label="Username" value={formIstruttore.username} onChange={(v) => setFormIstruttore({ ...formIstruttore, username: v })} required icon={<Users size={13} />} />
-                  <Input label="Password" type="password" value={formIstruttore.password} onChange={(v) => setFormIstruttore({ ...formIstruttore, password: v })} required icon={<Lock size={13} />} />
-                  <label className="block">
-                    <span className="text-[12px] font-medium text-slate-500 mb-1 block">Ruolo</span>
-                    <select
-                      value={formIstruttore.ruolo}
-                      onChange={(e) => setFormIstruttore({ ...formIstruttore, ruolo: e.target.value })}
-                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none"
-                      style={{ borderColor: "#E4DCC8" }}
-                    >
-                      <option value="admin">Admin — accesso completo</option>
-                      <option value="modificatore">Modificatore — gestisce i dati</option>
-                      <option value="lettura">Lettura — solo consultazione</option>
-                    </select>
-                  </label>
-                  <div className="flex gap-3">
-                    <PrimaryButton color={COLORS.navy}>Crea account</PrimaryButton>
-                    <button type="button" onClick={() => setNuovoIstruttore(false)} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
-                  </div>
-                </form>
-              ) : (
-                <button onClick={() => setNuovoIstruttore(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7BFA3", color: COLORS.muted }}>
-                  <Plus size={15} /> Nuovo utente
-                </button>
-              )
-            ) : (
-              <p className="text-[11.5px] text-slate-400">Solo un admin può creare nuovi utenti e assegnare i ruoli.</p>
-            )}
-
-            <div className="mt-5">
-              <SectionLabel>📋 Log attività</SectionLabel>
-              {log.length === 0 ? (
-                <p className="text-[12px] text-slate-400">Nessuna attività registrata in questa sessione.</p>
-              ) : (
-                <div className="space-y-1.5 max-h-80 overflow-y-auto pr-0.5">
-                  {log.map((voce) => {
-                    const stile = {
-                      accesso: { icon: LogIn, color: COLORS.navy },
-                      creazione: { icon: Plus, color: COLORS.green },
-                      modifica: { icon: Pencil, color: COLORS.terracotta },
-                      eliminazione: { icon: Trash2, color: COLORS.red },
-                    }[voce.azione] || { icon: BookOpen, color: COLORS.muted };
-                    const Icona = stile.icon;
+          {settoreSetup === "utenti" && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border p-4" style={{ borderColor: "#E4DCC8" }}>
+                <SectionLabel>Account attivi</SectionLabel>
+                <div className="space-y-2 mb-3">
+                  {istruttori.map((i) => {
+                    const ruoloStile = {
+                      admin: { color: COLORS.terracotta, label: "Admin" },
+                      modificatore: { color: COLORS.green, label: "Modificatore" },
+                      lettura: { color: COLORS.muted, label: "Lettura" },
+                    }[i.ruolo] || { color: COLORS.muted, label: i.ruolo };
                     return (
-                      <div key={voce.id} className="flex items-start gap-2.5 rounded-lg p-2.5" style={{ background: "#FAF6EC" }}>
-                        <div className="w-6 h-6 rounded-full grid place-items-center shrink-0 mt-0.5" style={{ background: `${stile.color}1A` }}>
-                          <Icona size={12} color={stile.color} />
+                      <div key={i.username} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "#FAF6EC" }}>
+                        <div className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: COLORS.navy }}>
+                          <Users size={15} color="#3ECB6E" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[12px]" style={{ color: COLORS.ink }}>
-                            <b>{voce.istruttore}</b> · {voce.dettaglio}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13px] font-semibold truncate" style={{ color: COLORS.navy }}>
+                            {i.nome} {i.username === istruttoreLoggato.username && <span className="font-normal" style={{ color: COLORS.muted }}>(tu)</span>}
                           </div>
-                          <div className="text-[10.5px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
-                            {voce.entita} · {voce.quando.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
-                          </div>
+                          <div className="text-[11.5px] text-slate-500 truncate">@{i.username}</div>
                         </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full uppercase shrink-0" style={{ background: `${ruoloStile.color}1A`, color: ruoloStile.color }}>
+                          {ruoloStile.label}
+                        </span>
+                        {isAdmin && i.username !== istruttoreLoggato.username && (
+                          <button onClick={() => eliminaIstruttore(i.username)} title="Elimina utente" className="shrink-0 w-7 h-7 rounded-full grid place-items-center" style={{ background: "#FDECEA" }}>
+                            <Trash2 size={13} color={COLORS.red} />
+                          </button>
+                        )}
                       </div>
                     );
                   })}
+                  {istruttori.length === 0 && (
+                    <p className="text-[11.5px] text-slate-400">🐾 Nessun utente da mostrare (o la lista si sta ancora caricando).</p>
+                  )}
                 </div>
-              )}
+
+                {isAdmin ? (
+                  nuovoIstruttore ? (
+                    <form onSubmit={creaIstruttore} className="rounded-xl p-3.5 space-y-3" style={{ background: "#FAF6EC" }}>
+                      <Input label="Nome" value={formIstruttore.nome} onChange={(v) => setFormIstruttore({ ...formIstruttore, nome: v })} required />
+                      <Input label="Username" value={formIstruttore.username} onChange={(v) => setFormIstruttore({ ...formIstruttore, username: v })} required icon={<Users size={13} />} />
+                      <Input label="Password" type="password" value={formIstruttore.password} onChange={(v) => setFormIstruttore({ ...formIstruttore, password: v })} required icon={<Lock size={13} />} />
+                      <label className="block">
+                        <span className="text-[12px] font-medium text-slate-500 mb-1 block">Ruolo</span>
+                        <select
+                          value={formIstruttore.ruolo}
+                          onChange={(e) => setFormIstruttore({ ...formIstruttore, ruolo: e.target.value })}
+                          className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none bg-white"
+                          style={{ borderColor: "#E4DCC8" }}
+                        >
+                          <option value="admin">Admin — accesso completo</option>
+                          <option value="modificatore">Modificatore — gestisce i dati</option>
+                          <option value="lettura">Lettura — solo consultazione</option>
+                        </select>
+                      </label>
+                      <div className="flex gap-3">
+                        <PrimaryButton color={COLORS.navy}>Crea account</PrimaryButton>
+                        <button type="button" onClick={() => setNuovoIstruttore(false)} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button onClick={() => setNuovoIstruttore(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7BFA3", color: COLORS.muted }}>
+                      <Plus size={15} /> Nuovo utente
+                    </button>
+                  )
+                ) : (
+                  <p className="text-[11.5px] text-slate-400">Solo un admin può creare nuovi utenti e assegnare i ruoli.</p>
+                )}
+              </div>
+
+              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "#E4DCC8" }}>
+                <button onClick={() => setLogAperto((v) => !v)} className="w-full flex items-center justify-between p-4">
+                  <span className="text-[12px] font-bold uppercase tracking-wide flex items-center gap-1.5" style={{ color: COLORS.muted, fontFamily: "Oswald, sans-serif" }}>
+                    📋 Log attività {log.length > 0 && `(${log.length})`}
+                  </span>
+                  <ChevronDown size={16} color={COLORS.muted} style={{ transform: logAperto ? "rotate(180deg)" : "none", transition: "transform 0.15s" }} />
+                </button>
+                {logAperto && (
+                  <div className="px-4 pb-4">
+                    {log.length === 0 ? (
+                      <p className="text-[12px] text-slate-400">Nessuna attività registrata in questa sessione.</p>
+                    ) : (
+                      <div className="space-y-1.5 max-h-80 overflow-y-auto pr-0.5">
+                        {log.map((voce) => {
+                          const stile = {
+                            accesso: { icon: LogIn, color: COLORS.navy },
+                            creazione: { icon: Plus, color: COLORS.green },
+                            modifica: { icon: Pencil, color: COLORS.terracotta },
+                            eliminazione: { icon: Trash2, color: COLORS.red },
+                          }[voce.azione] || { icon: BookOpen, color: COLORS.muted };
+                          const Icona = stile.icon;
+                          return (
+                            <div key={voce.id} className="flex items-start gap-2.5 rounded-lg p-2.5" style={{ background: "#FAF6EC" }}>
+                              <div className="w-6 h-6 rounded-full grid place-items-center shrink-0 mt-0.5" style={{ background: `${stile.color}1A` }}>
+                                <Icona size={12} color={stile.color} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[12px]" style={{ color: COLORS.ink }}>
+                                  <b>{voce.istruttore}</b> · {voce.dettaglio}
+                                </div>
+                                <div className="text-[10.5px] font-mono mt-0.5" style={{ color: COLORS.muted }}>
+                                  {voce.entita} · {voce.quando.toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ============ SEZIONE QUOTE ============ */}
-          <div>
-            <div className="text-lg font-bold flex items-center gap-2 mb-3" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
-              💳 Quote
-            </div>
-
-            <SectionLabel>Tipi di carnet e prezzi</SectionLabel>
-            <div className="space-y-2 mb-3">
-              {carnetTipi.map((c) => (
-                <div key={c.id} className="rounded-xl border p-4 flex items-center justify-between" style={{ borderColor: "#E4DCC8" }}>
-                  <div>
-                    <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>{c.nome}</div>
-                    <div className="text-[12px] text-slate-500">{c.numeroLezioni} lezion{c.numeroLezioni === 1 ? "e" : "i"}</div>
-                  </div>
-                  <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{c.prezzo}</div>
+          {settoreSetup === "quote" && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border p-4" style={{ borderColor: "#E4DCC8" }}>
+                <SectionLabel>🎫 Tipi di carnet e prezzi</SectionLabel>
+                <div className="space-y-2 mb-3">
+                  {carnetTipi.map((c) => (
+                    <div key={c.id} className="rounded-xl p-3.5 flex items-center justify-between" style={{ background: "#FAF6EC" }}>
+                      <div>
+                        <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>{c.nome}</div>
+                        <div className="text-[12px] text-slate-500">{c.numeroLezioni} lezion{c.numeroLezioni === 1 ? "e" : "i"}</div>
+                      </div>
+                      <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{c.prezzo}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {puoModificare && (
-              nuovoCarnet ? (
-                <form onSubmit={creaCarnet} className="rounded-xl border p-4 mb-6 space-y-3" style={{ borderColor: "#E4DCC8" }}>
-                  <Input label="Nome tipologia" value={formCarnet.nome} onChange={(v) => setFormCarnet({ ...formCarnet, nome: v })} required />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input label="N. lezioni" value={formCarnet.numeroLezioni} onChange={(v) => setFormCarnet({ ...formCarnet, numeroLezioni: v.replace(/\D/g, "") })} required />
-                    <Input label="Prezzo €" value={formCarnet.prezzo} onChange={(v) => setFormCarnet({ ...formCarnet, prezzo: v.replace(/\D/g, "") })} required />
-                  </div>
-                  <div className="flex gap-3">
-                    <PrimaryButton color={COLORS.navy}>Salva tipologia</PrimaryButton>
-                    <button type="button" onClick={() => setNuovoCarnet(false)} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
-                  </div>
-                </form>
-              ) : (
-                <button onClick={() => setNuovoCarnet(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5 mb-6" style={{ borderColor: "#C7D3D0", color: COLORS.muted }}>
-                  <Plus size={15} /> Nuova tipologia carnet
-                </button>
-              )
-            )}
-
-            <SectionLabel>Quota associativa</SectionLabel>
-            <div className="rounded-xl border p-4 flex items-center justify-between mb-3" style={{ borderColor: "#E4DCC8" }}>
-              <div>
-                <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>Quota annuale socio</div>
-                <div className="text-[12px] text-slate-500">Rinnovo ogni anno associativo</div>
+                {puoModificare && (
+                  nuovoCarnet ? (
+                    <form onSubmit={creaCarnet} className="rounded-xl p-3.5 space-y-3" style={{ background: "#FAF6EC" }}>
+                      <Input label="Nome tipologia" value={formCarnet.nome} onChange={(v) => setFormCarnet({ ...formCarnet, nome: v })} required />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input label="N. lezioni" value={formCarnet.numeroLezioni} onChange={(v) => setFormCarnet({ ...formCarnet, numeroLezioni: v.replace(/\D/g, "") })} required />
+                        <Input label="Prezzo €" value={formCarnet.prezzo} onChange={(v) => setFormCarnet({ ...formCarnet, prezzo: v.replace(/\D/g, "") })} required />
+                      </div>
+                      <div className="flex gap-3">
+                        <PrimaryButton color={COLORS.navy}>Salva tipologia</PrimaryButton>
+                        <button type="button" onClick={() => setNuovoCarnet(false)} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button onClick={() => setNuovoCarnet(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7D3D0", color: COLORS.muted }}>
+                      <Plus size={15} /> Nuova tipologia carnet
+                    </button>
+                  )
+                )}
               </div>
-              <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{quotaAssociativa}</div>
-            </div>
 
-            {puoModificare && (
-              modificaQuota ? (
-                <div className="rounded-xl border p-4 mb-6 space-y-3" style={{ borderColor: "#E4DCC8" }}>
-                  <Input label="Nuovo importo €" value={bozzaQuota} onChange={(v) => setBozzaQuota(v.replace(/\D/g, ""))} />
-                  <div className="flex gap-3">
-                    <button onClick={salvaQuotaAssociativa} className="text-[12.5px] font-semibold" style={{ color: COLORS.green }}>Salva</button>
-                    <button onClick={() => { setBozzaQuota(quotaAssociativa); setModificaQuota(false); }} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
+              <div className="rounded-2xl border p-4" style={{ borderColor: "#E4DCC8" }}>
+                <SectionLabel>🏷️ Quota associativa</SectionLabel>
+                <div className="rounded-xl p-3.5 flex items-center justify-between mb-3" style={{ background: "#FAF6EC" }}>
+                  <div>
+                    <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>Quota annuale socio</div>
+                    <div className="text-[12px] text-slate-500">Rinnovo ogni anno associativo</div>
                   </div>
+                  <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{quotaAssociativa}</div>
                 </div>
-              ) : (
-                <button onClick={() => { setBozzaQuota(quotaAssociativa); setModificaQuota(true); }} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5 mb-6" style={{ borderColor: "#C7D3D0", color: COLORS.muted }}>
-                  <Wallet size={15} /> Modifica importo quota associativa
-                </button>
-              )
-            )}
 
-            <SectionLabel>Registra un pagamento</SectionLabel>
-            <div className="rounded-xl p-4" style={{ background: "#FAF6EC" }}>
-              <p className="text-[12px] text-slate-500">Quando un cliente paga (carnet o quota associativa), registralo dalla scheda del cane in Anagrafica: lo stato si aggiorna lì.</p>
+                {puoModificare && (
+                  modificaQuota ? (
+                    <div className="rounded-xl p-3.5 space-y-3" style={{ background: "#FAF6EC" }}>
+                      <Input label="Nuovo importo €" value={bozzaQuota} onChange={(v) => setBozzaQuota(v.replace(/\D/g, ""))} />
+                      <div className="flex gap-3">
+                        <button onClick={salvaQuotaAssociativa} className="text-[12.5px] font-semibold" style={{ color: COLORS.green }}>Salva</button>
+                        <button onClick={() => { setBozzaQuota(quotaAssociativa); setModificaQuota(false); }} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setBozzaQuota(quotaAssociativa); setModificaQuota(true); }} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7D3D0", color: COLORS.muted }}>
+                      <Wallet size={15} /> Modifica importo quota associativa
+                    </button>
+                  )
+                )}
+              </div>
+
+              <div className="rounded-2xl p-4" style={{ background: "#FAF6EC" }}>
+                <SectionLabel>💰 Registra un pagamento</SectionLabel>
+                <p className="text-[12px] text-slate-500">Quando un cliente paga (carnet o quota associativa), registralo dalla scheda del cane in Anagrafica: lo stato si aggiorna lì.</p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
