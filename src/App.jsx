@@ -69,7 +69,8 @@ function mappaEvento(r) {
 function mappaCane(r) {
   return {
     cane: r.cane_nome, conduttore: r.proprietario_nome, email: r.proprietario_email, telefono: r.proprietario_telefono,
-    razza: r.razza || "", eta: r.eta || "", specializzazione: r.specializzazione || "",
+    razza: r.razza || "", eta: r.eta || "", sesso: r.sesso || "", sterilizzato: r.sterilizzato || "",
+    motivoRichiesta: r.motivo_richiesta || "", saluteTerapie: r.salute_terapie || "", comportamento: r.comportamento || "",
     dataNascitaConduttore: r.data_nascita_conduttore || "", dataNascitaCane: r.data_nascita_cane || "",
     microchip: r.microchip || "", brevettoAcs: r.brevetto_acs || "", brevettoSalvataggio: r.brevetto_salvataggio || "",
     scadenzaBrevetto: r.scadenza_brevetto || "",
@@ -85,7 +86,9 @@ function mappaPrenotazione(r) {
   return {
     id: r.id, slotId: r.disponibilita_id, cliente: r.cliente_nome, cane: r.cane_nome,
     telefono: r.cliente_telefono, stato: r.stato, confermatoDa: r.confermato_da,
-    annullatoDa: r.annullato_da || "", dataAnnullamento: r.data_annullamento || ""
+    annullatoDa: r.annullato_da || "", dataAnnullamento: r.data_annullamento || "",
+    dataPrenotazione: r.data_prenotazione || "", acquistoId: r.acquisto_id || "",
+    carnetPrima: Number(r.carnet_prima), carnetDopo: Number(r.carnet_dopo), movimentoCarnet: Number(r.movimento_carnet) || 0
   };
 }
 
@@ -267,10 +270,10 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   const [riconosciuto, setRiconosciuto] = useState(null);
   const [inSospeso, setInSospeso] = useState(false);
   const [slotScelto, setSlotScelto] = useState(null);
-  const [form, setForm] = useState({ nome: "", telefono: "", cane: "", razza: "", eta: "", consensoPrivacy: false, consensoFotoVideo: false });
+  const [form, setForm] = useState({ nome: "", telefono: "", cane: "", razza: "", eta: "", sesso: "", sterilizzato: "", motivoRichiesta: "", saluteTerapie: "", comportamento: "", microchip: "", consensoPrivacy: false, consensoFotoVideo: false });
   const [caneAperto, setCaneAperto] = useState(null);
   const [informativaAperta, setInformativaAperta] = useState(null);
-  const [riconoscimento, setRiconoscimento] = useState({ stato: "vuoto", socio: false, ambiguo: false, metodo: "" });
+  const [riconoscimento, setRiconoscimento] = useState({ stato: "vuoto", socio: false, ambiguo: false, metodo: "", lezioniResidue: null, lezioniDopo: null });
 
   function normalizza(s) {
     return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
@@ -318,12 +321,12 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
 
   useEffect(() => {
     if (!campiBaseCompleti) {
-      setRiconoscimento({ stato: "vuoto", socio: false, ambiguo: false, metodo: "" });
+      setRiconoscimento({ stato: "vuoto", socio: false, ambiguo: false, metodo: "", lezioniResidue: null, lezioniDopo: null });
       return;
     }
 
     const timer = setTimeout(async () => {
-      setRiconoscimento({ stato: "controllo", socio: false, ambiguo: false, metodo: "" });
+      setRiconoscimento({ stato: "controllo", socio: false, ambiguo: false, metodo: "", lezioniResidue: null, lezioniDopo: null });
       try {
         const risposta = await chiamaAPI("riconosciUtentePubblico", {
           clienteNome: form.nome,
@@ -335,6 +338,8 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
           socio: risposta?.ok === true && risposta?.riconosciuto === true,
           ambiguo: risposta?.ok === true && risposta?.ambiguo === true,
           metodo: risposta?.metodo || "",
+          lezioniResidue: Number.isFinite(Number(risposta?.lezioni_residue)) ? Number(risposta.lezioni_residue) : null,
+          lezioniDopo: Number.isFinite(Number(risposta?.lezioni_dopo_prenotazione)) ? Number(risposta.lezioni_dopo_prenotazione) : null,
         });
       } catch {
         // Fallback utile se l'area istruttore ha già caricato l'anagrafica nello stesso browser.
@@ -371,6 +376,9 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
         caneNome: form.cane, acquistoId: "", sospeso: !match,
         consensoPrivacy: form.consensoPrivacy,
         consensoFotoVideo: form.consensoFotoVideo,
+        razza: form.razza, eta: form.eta, sesso: form.sesso, sterilizzato: form.sterilizzato,
+        motivoRichiesta: form.motivoRichiesta, saluteTerapie: form.saluteTerapie,
+        comportamento: form.comportamento, microchip: form.microchip,
         versioneInformativa: "2026-07-28",
       });
 
@@ -394,14 +402,16 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
         // finché l'istruttore non la approva (crea la scheda con razza/età fornite)
         setPrenotazioni((prev) => [
           ...prev,
-          { id, slotId: slotScelto.id, cliente: form.nome, cane: form.cane, telefono: form.telefono, stato: "in sospeso", nuovo: true, razza: form.razza, eta: form.eta },
+          { id, slotId: slotScelto.id, cliente: form.nome, cane: form.cane, telefono: form.telefono, stato: "in sospeso", nuovo: true, razza: form.razza, eta: form.eta, sesso: form.sesso, sterilizzato: form.sterilizzato,
+            motivoRichiesta: form.motivoRichiesta, saluteTerapie: form.saluteTerapie,
+            comportamento: form.comportamento, microchip: form.microchip },
         ]);
         setInSospeso(true);
       }
       setRiconosciuto(match);
       setPrenotato(slotScelto);
       setSlotScelto(null);
-      setForm({ nome: "", telefono: "", cane: "", razza: "", eta: "", consensoPrivacy: false, consensoFotoVideo: false });
+      setForm({ nome: "", telefono: "", cane: "", razza: "", eta: "", sesso: "", sterilizzato: "", motivoRichiesta: "", saluteTerapie: "", comportamento: "", microchip: "", consensoPrivacy: false, consensoFotoVideo: false });
     } catch (err) {
       alert("Impossibile contattare il server. Controlla la connessione e riprova.");
     }
@@ -446,8 +456,13 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
             </div>
           )}
           {campiBaseCompleti && riconoscimento.stato === "completato" && riconoscimento.socio && (
-            <div className="rounded-xl px-3.5 py-2.5 text-[12px] font-semibold flex items-center gap-2" style={{ background: "#E7F6EC", color: COLORS.green }}>
-              <CheckCircle2 size={15} /> Socio riconosciuto: puoi prenotare direttamente.
+            <div className="rounded-xl px-3.5 py-3 text-[12px] font-semibold" style={{ background: "#E7F6EC", color: COLORS.green }}>
+              <div className="flex items-center gap-2"><CheckCircle2 size={15} /> Scheda cliente riconosciuta.</div>
+              {riconoscimento.lezioniResidue !== null && (
+                <div className="mt-1.5 pl-6 font-normal" style={{ color: COLORS.navy }}>
+                  Carnet attuale: <b>{riconoscimento.lezioniResidue}</b> lezioni. Dopo questa prenotazione resteranno <b>{Math.max(0, riconoscimento.lezioniDopo)}</b> lezioni disponibili.
+                </div>
+              )}
             </div>
           )}
           {campiBaseCompleti && riconoscimento.stato === "completato" && riconoscimento.ambiguo && (
@@ -465,8 +480,33 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
               <p className="text-[11.5px]" style={{ color: "#8A4A28" }}>
                 Aggiungi qualche dettaglio in più sul tuo cane: ci serve per creare la sua scheda.
               </p>
-              <Input label="Razza" value={form.razza} onChange={(v) => setForm({ ...form, razza: v })} required />
-              <Input label="Età" value={form.eta} onChange={(v) => setForm({ ...form, eta: v })} required />
+              <div className="grid grid-cols-2 gap-2">
+                <Input label="Razza" value={form.razza} onChange={(v) => setForm({ ...form, razza: v })} required />
+                <Input label="Età" value={form.eta} onChange={(v) => setForm({ ...form, eta: v })} required />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="text-[12px] font-medium text-slate-500 mb-1 block">Sesso</span>
+                  <select required value={form.sesso} onChange={(e) => setForm({ ...form, sesso: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm bg-white" style={{ borderColor: "#E2E5E9" }}>
+                    <option value="">Seleziona…</option><option value="Maschio">Maschio</option><option value="Femmina">Femmina</option>
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-[12px] font-medium text-slate-500 mb-1 block">Sterilizzato/a</span>
+                  <select value={form.sterilizzato} onChange={(e) => setForm({ ...form, sterilizzato: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm bg-white" style={{ borderColor: "#E2E5E9" }}>
+                    <option value="">Non indicato</option><option value="Si">Sì</option><option value="No">No</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block">
+                <span className="text-[12px] font-medium text-slate-500 mb-1 block">Motivo della richiesta</span>
+                <select required value={form.motivoRichiesta} onChange={(e) => setForm({ ...form, motivoRichiesta: e.target.value })} className="w-full rounded-lg border px-3 py-2.5 text-sm bg-white" style={{ borderColor: "#E2E5E9" }}>
+                  <option value="">Seleziona…</option><option>Educazione di base</option><option>Puppy Class</option><option>Socializzazione</option><option>Gestione al guinzaglio</option><option>Richiamo</option><option>Paure o insicurezze</option><option>Aggressività</option><option>Altro</option>
+                </select>
+              </label>
+              <Input label="Microchip (facoltativo)" value={form.microchip} onChange={(v) => setForm({ ...form, microchip: v })} />
+              <Input label="Problemi di salute o terapie (facoltativo)" value={form.saluteTerapie} onChange={(v) => setForm({ ...form, saluteTerapie: v })} />
+              <Input label="Note sul comportamento (facoltativo)" value={form.comportamento} onChange={(v) => setForm({ ...form, comportamento: v })} />
             </div>
           )}
 
@@ -736,9 +776,6 @@ function StoricoCaneDettaglio({ caneNome, onBack }) {
         <div className="min-w-0 flex-1">
           <div className="font-bold text-lg" style={{ color: "#fff", fontFamily: "Oswald, sans-serif" }}>{cane.cane}</div>
           <div className="text-[12px]" style={{ color: "#9FB3BF" }}>{cane.conduttore} · {cane.razza}</div>
-          <div className="text-[11px] mt-1 flex items-center gap-1" style={{ color: "#3ECB6E" }}>
-            <Award size={11} /> {cane.specializzazione}
-          </div>
         </div>
         <div className="text-right shrink-0">
           <div className="font-mono text-lg font-semibold" style={{ color: "#fff" }}>{cane.lezioniResidue}</div>
@@ -848,7 +885,7 @@ function DogAvatar({ size = 52, bg = COLORS.navy, iconColor = "#3ECB6E" }) {
   );
 }
 
-function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTipi, acquistiCane, onRegistraAcquisto, puoModificare = true }) {
+function AnagraficaCard({ c, onUpdate, onDelete, storico, storicoLezioni = [], onAddStorico, carnetTipi, acquistiCane, onRegistraAcquisto, puoModificare = true }) {
   const [aperto, setAperto] = useState(false);
   const [modifica, setModifica] = useState(false);
   const [bozza, setBozza] = useState(c);
@@ -875,9 +912,6 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>{c.cane}</div>
           <div className="text-[12px] text-slate-500">{c.conduttore} · {c.razza}</div>
-          <div className="text-[11px] mt-0.5 flex items-center gap-1" style={{ color: COLORS.green }}>
-            <Award size={11} /> {c.specializzazione}
-          </div>
         </div>
         <div className="text-right">
           <div className="text-[11px] font-mono" style={{ color: COLORS.muted }}>{c.lezioniResidue}/{c.lezioniTotali} lez.</div>
@@ -920,14 +954,24 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                 <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>
                   <Award size={13} color={COLORS.muted} /> {c.eta || "—"}
                 </div>
+                <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>Sesso: {c.sesso || "—"}</div>
+                <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>Sterilizzato/a: {c.sterilizzato || "—"}</div>
                 <div className="flex items-center gap-1.5 col-span-2" style={{ color: COLORS.ink }}>
                   <Calendar size={13} color={COLORS.muted} /> Nato il {c.dataNascitaCane ? formatData(c.dataNascitaCane) : "—"}
                 </div>
+                <div className="col-span-2"><b>Motivo:</b> {c.motivoRichiesta || "—"}</div>
+                <div className="col-span-2"><b>Salute/terapie:</b> {c.saluteTerapie || "—"}</div>
+                <div className="col-span-2"><b>Comportamento:</b> {c.comportamento || "—"}</div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 <Input label="Microchip" value={bozza.microchip || ""} onChange={(v) => setBozza({ ...bozza, microchip: v })} />
                 <Input label="Età" value={bozza.eta || ""} onChange={(v) => setBozza({ ...bozza, eta: v })} />
+                <Input label="Sesso" value={bozza.sesso || ""} onChange={(v) => setBozza({ ...bozza, sesso: v })} />
+                <Input label="Sterilizzato/a" value={bozza.sterilizzato || ""} onChange={(v) => setBozza({ ...bozza, sterilizzato: v })} />
+                <div className="col-span-2"><Input label="Motivo della richiesta" value={bozza.motivoRichiesta || ""} onChange={(v) => setBozza({ ...bozza, motivoRichiesta: v })} /></div>
+                <div className="col-span-2"><Input label="Salute o terapie" value={bozza.saluteTerapie || ""} onChange={(v) => setBozza({ ...bozza, saluteTerapie: v })} /></div>
+                <div className="col-span-2"><Input label="Note sul comportamento" value={bozza.comportamento || ""} onChange={(v) => setBozza({ ...bozza, comportamento: v })} /></div>
                 <label className="block col-span-2">
                   <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita cane</span>
                   <input type="date" value={bozza.dataNascitaCane || ""} onChange={(e) => setBozza({ ...bozza, dataNascitaCane: e.target.value })}
@@ -1058,6 +1102,30 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+          {/* Storico lezioni e movimenti carnet */}
+          <div>
+            <SectionLabel>📅 Storico lezioni</SectionLabel>
+            {storicoLezioni.length === 0 ? (
+              <p className="text-[12px] text-slate-400">Nessuna lezione registrata.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {storicoLezioni.map((l) => (
+                  <div key={l.id} className="rounded-lg p-2.5" style={{ background: "#F5F6F8" }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-[12px] font-semibold" style={{ color: COLORS.navy }}>{formatData(l.data)}{l.ora ? ` · ${l.ora}` : ""} — {l.tipo}</div>
+                      <span className="text-[10.5px] font-semibold uppercase" style={{ color: l.stato === "annullata" ? COLORS.red : l.stato === "presente" ? COLORS.green : COLORS.muted }}>{l.stato}</span>
+                    </div>
+                    {Number.isFinite(l.carnetPrima) && Number.isFinite(l.carnetDopo) && (l.carnetPrima || l.carnetDopo || l.movimentoCarnet) ? (
+                      <div className="text-[11px] mt-1 font-mono" style={{ color: COLORS.muted }}>Carnet: {l.carnetPrima} → {l.carnetDopo} {l.movimentoCarnet > 0 ? "(lezione restituita)" : l.movimentoCarnet < 0 ? "(lezione utilizzata)" : ""}</div>
+                    ) : (
+                      <div className="text-[11px] mt-1" style={{ color: COLORS.muted }}>Nessun movimento carnet registrato.</div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -1316,7 +1384,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const [modificaQuota, setModificaQuota] = useState(false);
   const [ricercaAnagrafica, setRicercaAnagrafica] = useState("");
   const [nuovoCane, setNuovoCane] = useState(false);
-  const [formCane, setFormCane] = useState({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "", dataNascitaConduttore: "", dataNascitaCane: "", microchip: "", brevettoAcs: "", brevettoSalvataggio: "", scadenzaBrevetto: "" });
+  const [formCane, setFormCane] = useState({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", dataNascitaConduttore: "", dataNascitaCane: "", microchip: "", brevettoAcs: "", brevettoSalvataggio: "", scadenzaBrevetto: "" });
   const [settoreSetup, setSettoreSetup] = useState("utenti");
   const [logAperto, setLogAperto] = useState(false);
   const [filtroAnagrafica, setFiltroAnagrafica] = useState("tutti");
@@ -1486,32 +1554,38 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
 
   async function annullaIscrizione(prenotazione) {
+    let risposta;
     try {
-      const risposta = await chiamaAPI("annullaPrenotazione", {
+      risposta = await chiamaAPI("annullaPrenotazione", {
         prenotazioneId: prenotazione.id,
         username: istruttoreLoggato.username,
         password: pwd,
       });
-      if (!risposta.ok) {
-        alert(risposta.errore || "Non è stato possibile annullare l'iscrizione.");
-        return;
-      }
-
-      setPrenotazioni((prev) => prev.map((p) =>
-        p.id === prenotazione.id ? { ...p, stato: "annullata", annullatoDa: istruttoreLoggato.nome } : p
-      ));
-      setEventi((prev) => prev.map((s) =>
-        s.id === prenotazione.slotId ? { ...s, postiOccupati: Math.max(0, s.postiOccupati - 1) } : s
-      ));
-
-      // Se era già stata confermata la presenza, il backend riaccredita la lezione.
-      // Ricarichiamo i dati amministrativi con una sola chiamata per riallineare carnet e scheda cane.
-      if (prenotazione.stato === "presente") {
-        await caricaDatiBackend();
-      }
     } catch (err) {
-      alert("Impossibile contattare il backend.");
+      alert("Impossibile contattare il backend. L’iscrizione non è stata modificata.");
+      return;
     }
+    if (!risposta?.ok) {
+      alert(risposta?.errore || "Non è stato possibile annullare l'iscrizione.");
+      return;
+    }
+
+    setPrenotazioni((prev) => prev.map((p) =>
+      p.id === prenotazione.id ? {
+        ...p, stato: "annullata", annullatoDa: istruttoreLoggato.nome,
+        movimentoCarnet: risposta.credito_restituito ? 1 : p.movimentoCarnet,
+        carnetPrima: Number.isFinite(Number(risposta.carnet_prima)) ? Number(risposta.carnet_prima) : p.carnetPrima,
+        carnetDopo: Number.isFinite(Number(risposta.carnet_dopo)) ? Number(risposta.carnet_dopo) : p.carnetDopo,
+      } : p
+    ));
+    setEventi((prev) => prev.map((s) =>
+      s.id === prenotazione.slotId ? { ...s, postiOccupati: Math.max(0, s.postiOccupati - 1) } : s
+    ));
+    if (risposta.credito_restituito) {
+      setAnagrafica((prev) => prev.map((c) => c.cane === prenotazione.cane ? { ...c, lezioniResidue: c.lezioniResidue + 1 } : c));
+      setAcquisti((prev) => prev.map((a) => a.id === prenotazione.acquistoId ? { ...a, lezioniResidue: Math.min(a.lezioniTotali, a.lezioniResidue + 1) } : a));
+    }
+    registraLog(istruttoreLoggato.nome, "annullamento", "Prenotazione", `Iscrizione annullata: ${prenotazione.cliente} · ${prenotazione.cane}`);
   }
 
   async function approvaRichiesta(richiesta) {
@@ -1519,6 +1593,8 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     try {
       const risposta = await chiamaAPI("approvaRichiesta", {
         prenotazioneId: richiesta.id, razza: richiesta.razza || "", eta: richiesta.eta || "",
+        sesso: richiesta.sesso || "", sterilizzato: richiesta.sterilizzato || "", motivoRichiesta: richiesta.motivoRichiesta || "",
+        saluteTerapie: richiesta.saluteTerapie || "", comportamento: richiesta.comportamento || "", microchip: richiesta.microchip || "",
         username: istruttoreLoggato.username, password: pwd,
       });
       if (!risposta.ok) {
@@ -1530,8 +1606,10 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
         setAnagrafica((prev) => [
           ...prev,
           {
-            cane: richiesta.cane, microchip: "", eta: richiesta.eta || "", razza: richiesta.razza || "",
-            specializzazione: "", lezioniResidue: 0, lezioniTotali: 0,
+            cane: richiesta.cane, microchip: richiesta.microchip || "", eta: richiesta.eta || "", razza: richiesta.razza || "",
+            sesso: richiesta.sesso || "", sterilizzato: richiesta.sterilizzato || "", motivoRichiesta: richiesta.motivoRichiesta || "",
+            saluteTerapie: richiesta.saluteTerapie || "", comportamento: richiesta.comportamento || "",
+            lezioniResidue: 0, lezioniTotali: 0,
             conduttore: richiesta.cliente, telefono: richiesta.telefono, email: "",
             quotaAssociativa: { importo: quotaAssociativa, versato: 0, scadenza: "", stato: "da versare" },
           },
@@ -1638,7 +1716,8 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     try {
       const risposta = await chiamaAPI("aggiornaCane", {
         caneNome, conduttore: completo.conduttore, telefono: completo.telefono, email: completo.email,
-        razza: completo.razza, eta: completo.eta, specializzazione: completo.specializzazione,
+        razza: completo.razza, eta: completo.eta, sesso: completo.sesso, sterilizzato: completo.sterilizzato,
+        motivoRichiesta: completo.motivoRichiesta, saluteTerapie: completo.saluteTerapie, comportamento: completo.comportamento,
         dataNascitaConduttore: completo.dataNascitaConduttore, dataNascitaCane: completo.dataNascitaCane,
         microchip: completo.microchip, brevettoAcs: completo.brevettoAcs, brevettoSalvataggio: completo.brevettoSalvataggio,
         scadenzaBrevetto: completo.scadenzaBrevetto,
@@ -1685,8 +1764,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     try {
       const risposta = await chiamaAPI("creaCane", {
         caneNome: formCane.cane, conduttore: formCane.conduttore, telefono: formCane.telefono, email: formCane.email,
-        razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione,
-        dataNascitaConduttore: formCane.dataNascitaConduttore, dataNascitaCane: formCane.dataNascitaCane,
+        razza: formCane.razza, eta: formCane.eta,         dataNascitaConduttore: formCane.dataNascitaConduttore, dataNascitaCane: formCane.dataNascitaCane,
         microchip: formCane.microchip, brevettoAcs: formCane.brevettoAcs, brevettoSalvataggio: formCane.brevettoSalvataggio,
         scadenzaBrevetto: formCane.scadenzaBrevetto,
         username: istruttoreLoggato.username, password: pwd,
@@ -1696,8 +1774,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           ...prev,
           {
             cane: formCane.cane, conduttore: formCane.conduttore, telefono: formCane.telefono, email: formCane.email,
-            razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione,
-            dataNascitaConduttore: formCane.dataNascitaConduttore, dataNascitaCane: formCane.dataNascitaCane,
+            razza: formCane.razza, eta: formCane.eta,             dataNascitaConduttore: formCane.dataNascitaConduttore, dataNascitaCane: formCane.dataNascitaCane,
             microchip: formCane.microchip, brevettoAcs: formCane.brevettoAcs, brevettoSalvataggio: formCane.brevettoSalvataggio,
             scadenzaBrevetto: formCane.scadenzaBrevetto,
             lezioniResidue: 0, lezioniTotali: 0,
@@ -1706,7 +1783,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           },
         ]);
         registraLog(istruttoreLoggato.nome, "creazione", "Anagrafica", `Nuova scheda: ${formCane.cane} (${formCane.conduttore})`);
-        setFormCane({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "", dataNascitaConduttore: "", dataNascitaCane: "", microchip: "", brevettoAcs: "", brevettoSalvataggio: "", scadenzaBrevetto: "" });
+        setFormCane({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", dataNascitaConduttore: "", dataNascitaCane: "", microchip: "", brevettoAcs: "", brevettoSalvataggio: "", scadenzaBrevetto: "" });
         setNuovoCane(false);
       } else {
         alert(risposta.errore || "Non è stato possibile creare la scheda.");
@@ -1850,15 +1927,11 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
       </div>
 
       {tab === "anagrafica" && (() => {
-        const specializzazioni = [...new Set(anagrafica.map((c) => c.specializzazione).filter(Boolean))];
         const testo = ricercaAnagrafica.trim().toLowerCase();
         const filtrati = anagrafica.filter((c) => {
           const matchTesto = !testo || c.cane.toLowerCase().includes(testo) || c.conduttore.toLowerCase().includes(testo);
           const haQuoteScadute = c.quotaAssociativa.stato === "da versare" || c.quotaCarnet.stato === "da versare";
-          const matchFiltro =
-            filtroAnagrafica === "tutti" ? true :
-            filtroAnagrafica === "scadute" ? haQuoteScadute :
-            c.specializzazione === filtroAnagrafica;
+          const matchFiltro = filtroAnagrafica === "tutti" ? true : haQuoteScadute;
           return matchTesto && matchFiltro;
         });
         return (
@@ -1879,7 +1952,6 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
               {[
                 { key: "tutti", label: "Tutti" },
                 { key: "scadute", label: "⚠️ Quote scadute" },
-                ...specializzazioni.map((s) => ({ key: s, label: s })),
               ].map((f) => (
                 <button
                   key={f.key}
@@ -1922,7 +1994,6 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                       className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                   </label>
                   <Input label="Microchip" value={formCane.microchip} onChange={(v) => setFormCane({ ...formCane, microchip: v })} icon={<Fingerprint size={13} />} />
-                  <Input label="Specializzazione" value={formCane.specializzazione} onChange={(v) => setFormCane({ ...formCane, specializzazione: v })} icon={<Award size={13} />} />
 
                   <div className="pt-1" style={{ borderTop: "1px solid #E2E5E9" }}>
                     <div className="text-[11px] font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: COLORS.muted, fontFamily: "Oswald, sans-serif" }}>
@@ -1963,6 +2034,10 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                   onUpdate={(nuoviDati) => aggiornaCane(c.cane, nuoviDati)}
                   onDelete={() => eliminaCane(c.cane)}
                   storico={storico[c.cane]}
+                  storicoLezioni={prenotazioni.filter((p) => p.cane === c.cane).map((p) => {
+                    const ev = eventi.find((e) => e.id === p.slotId);
+                    return { ...p, data: ev?.data || p.dataPrenotazione, ora: ev?.ora || "", tipo: ev?.tipo || "Lezione" };
+                  }).sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")))}
                   onAddStorico={(voce) => aggiungiStorico(c.cane, voce)}
                   carnetTipi={carnetTipi}
                   acquistiCane={acquisti.filter((a) => a.cane === c.cane).sort((x, y) => (y.data || "").localeCompare(x.data || ""))}
