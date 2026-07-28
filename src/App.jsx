@@ -107,9 +107,9 @@ const COLORS = {
   green: "#1F9D4C",
   red: "#E23B32",
   terracotta: "#C1552C",
-  paper: "#F6F1E4",
+  paper: "#FFFFFF",
   ink: "#1B2B33",
-  muted: "#7C7259",
+  muted: "#64748B",
 };
 
 /* ---------- Dati di esempio (mock) ---------- */
@@ -335,7 +335,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
           <ArrowLeft size={16} /> Torna alle lezioni
         </button>
         <SectionLabel>Prenota questo turno</SectionLabel>
-        <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "#E4DCC8" }}>
+        <div className="rounded-xl border p-4 mb-5" style={{ borderColor: "#E2E5E9" }}>
           <div className="font-semibold" style={{ color: COLORS.navy }}>{slotScelto.tipo}</div>
 
           <div className="text-sm text-slate-500 mt-1 flex items-center gap-3">
@@ -343,7 +343,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
             <span className="flex items-center gap-1"><Clock size={13} /> {slotScelto.ora}</span>
           </div>
           {partecipanti.length > 0 && (
-            <div className="mt-3 pt-3" style={{ borderTop: "1px solid #EAE1CB" }}>
+            <div className="mt-3 pt-3" style={{ borderTop: "1px solid #E7EAED" }}>
               <div className="text-[11px] font-semibold mb-1.5" style={{ color: COLORS.muted }}>Chi c'è già in questo turno</div>
               <div className="flex flex-wrap gap-1.5">
                 {partecipanti.map((p) => (
@@ -444,7 +444,7 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
           <div className="w-10 h-[3px] rounded-full mt-1.5 mb-2" style={{ background: COLORS.terracotta }} />
           <div className="text-[13px] text-slate-500">Scegli il turno, ti aspettiamo al campo!</div>
         </div>
-        <button onClick={onAggiorna} className="shrink-0 mt-1 p-2 rounded-full" style={{ background: "#EFE7D6" }} title="Aggiorna">
+        <button onClick={onAggiorna} className="shrink-0 mt-1 p-2 rounded-full" style={{ background: "#EEF1F4" }} title="Aggiorna">
           <RefreshCw size={16} color={COLORS.navy} />
         </button>
       </div>
@@ -463,7 +463,7 @@ function getTipoStyle(tipo) {
     "Obbedienza base": { accent: "#6366F1", bg: "#EEF0FF", emoji: "🐕" },
     "Ricerca superficie": { accent: "#0D9488", bg: "#E7FBF8", emoji: "🦮" },
   };
-  return palette[tipo] || { accent: COLORS.navy, bg: "#EFE7D6", emoji: "🐾" };
+  return palette[tipo] || { accent: COLORS.navy, bg: "#EEF1F4", emoji: "🐾" };
 }
 
 function LezioneCard({ slot, onClick }) {
@@ -543,7 +543,7 @@ function StoricoCaneDettaglio({ caneNome, onBack }) {
           <p className="text-sm text-slate-400">Nessun addestramento registrato ancora.</p>
         )}
         {voci.map((s, i) => (
-          <div key={i} className="rounded-xl p-4 border" style={{ borderColor: "#E4DCC8" }}>
+          <div key={i} className="rounded-xl p-4 border" style={{ borderColor: "#E2E5E9" }}>
             <div className="flex items-center justify-between">
               <span className="text-[12px] font-mono text-slate-400">{formatData(s.data)}</span>
               <BookOpen size={13} color={COLORS.muted} />
@@ -571,24 +571,24 @@ function QuotaRow({ label, quota, onSave, puoModificare = true }) {
 
   if (modifica) {
     return (
-      <div className="rounded-lg p-3 space-y-2" style={{ background: "#FAF6EC" }}>
+      <div className="rounded-lg p-3 space-y-2" style={{ background: "#F5F6F8" }}>
         <span className="text-[12px] font-semibold" style={{ color: COLORS.navy }}>{label}</span>
         <div className="grid grid-cols-2 gap-2">
           <label className="block">
             <span className="text-[10.5px] text-slate-500">Importo €</span>
             <input type="number" value={bozza.importo} onChange={(e) => setBozza({ ...bozza, importo: e.target.value })}
-              className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E4DCC8" }} />
+              className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E2E5E9" }} />
           </label>
           <label className="block">
             <span className="text-[10.5px] text-slate-500">Versato €</span>
             <input type="number" value={bozza.versato} onChange={(e) => setBozza({ ...bozza, versato: e.target.value })}
-              className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E4DCC8" }} />
+              className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E2E5E9" }} />
           </label>
         </div>
         <label className="block">
           <span className="text-[10.5px] text-slate-500">Scadenza</span>
           <input type="date" value={bozza.scadenza} onChange={(e) => setBozza({ ...bozza, scadenza: e.target.value })}
-            className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E4DCC8" }} />
+            className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E2E5E9" }} />
         </label>
         <div className="flex gap-2 pt-1">
           <button onClick={salva} className="text-[12px] font-semibold" style={{ color: COLORS.green }}>Salva</button>
@@ -599,7 +599,7 @@ function QuotaRow({ label, quota, onSave, puoModificare = true }) {
   }
 
   return (
-    <div className="rounded-lg p-3" style={{ background: "#FAF6EC" }}>
+    <div className="rounded-lg p-3" style={{ background: "#F5F6F8" }}>
       <div className="flex items-center justify-between">
         <span className="text-[12px] font-semibold" style={{ color: COLORS.navy }}>{label}</span>
         <div className="flex items-center gap-2">
@@ -660,7 +660,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
   }
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#E4DCC8" }}>
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: "#E2E5E9" }}>
       <button className="w-full text-left p-4 flex items-center gap-3" onClick={() => setAperto((v) => !v)}>
         <DogAvatar />
         <div className="min-w-0 flex-1">
@@ -677,7 +677,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
       </button>
 
       {aperto && (
-        <div className="px-4 pb-4 space-y-4" style={{ borderTop: "1px solid #E4DCC8" }}>
+        <div className="px-4 pb-4 space-y-4" style={{ borderTop: "1px solid #E2E5E9" }}>
           <div className="flex items-center justify-between pt-3">
             {puoModificare && (
               <button
@@ -722,7 +722,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                 <label className="block col-span-2">
                   <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita cane</span>
                   <input type="date" value={bozza.dataNascitaCane || ""} onChange={(e) => setBozza({ ...bozza, dataNascitaCane: e.target.value })}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                 </label>
               </div>
             )}
@@ -754,7 +754,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                 <label className="block">
                   <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita conduttore</span>
                   <input type="date" value={bozza.dataNascitaConduttore || ""} onChange={(e) => setBozza({ ...bozza, dataNascitaConduttore: e.target.value })}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                 </label>
               </div>
             )}
@@ -780,7 +780,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                 <label className="block">
                   <span className="text-[12px] font-medium text-slate-500 mb-1 block">Scadenza brevetto</span>
                   <input type="date" value={bozza.scadenzaBrevetto || ""} onChange={(e) => setBozza({ ...bozza, scadenzaBrevetto: e.target.value })}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                 </label>
               </div>
             )}
@@ -795,7 +795,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
           {/* Carnet lezioni: tracciato per davvero tramite gli acquisti */}
           <div>
             <SectionLabel>🎫 Carnet lezioni</SectionLabel>
-            <div className="rounded-lg p-3 mb-2" style={{ background: "#FAF6EC" }}>
+            <div className="rounded-lg p-3 mb-2" style={{ background: "#F5F6F8" }}>
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-semibold" style={{ color: COLORS.navy }}>Lezioni residue</span>
                 <span className="font-mono text-[13px] font-bold" style={{ color: c.lezioniResidue > 0 ? COLORS.green : COLORS.red }}>
@@ -810,7 +810,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                   value={carnetSelezionato}
                   onChange={(e) => setCarnetSelezionato(e.target.value)}
                   className="flex-1 rounded-lg border px-2.5 py-2 text-[12.5px] outline-none bg-white"
-                  style={{ borderColor: "#E4DCC8" }}
+                  style={{ borderColor: "#E2E5E9" }}
                 >
                   <option value="">Scegli un carnet…</option>
                   {carnetTipi.map((t) => (
@@ -838,7 +838,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                 {acquistiCane.map((a) => {
                   const tipo = carnetTipi.find((t) => t.id === a.carnetId);
                   return (
-                    <div key={a.id} className="rounded-lg p-2.5 flex items-center justify-between" style={{ background: "#FAF6EC" }}>
+                    <div key={a.id} className="rounded-lg p-2.5 flex items-center justify-between" style={{ background: "#F5F6F8" }}>
                       <div className="min-w-0">
                         <div className="text-[12px] font-semibold truncate" style={{ color: COLORS.navy }}>{tipo ? tipo.nome : "Carnet"}</div>
                         <div className="text-[10.5px] font-mono" style={{ color: COLORS.muted }}>Acquistato il {formatData(a.data)}</div>
@@ -865,11 +865,11 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
             </div>
 
             {nuovaVoce && (
-              <form onSubmit={salvaVoce} className="rounded-lg p-3 mb-2 space-y-2" style={{ background: "#FAF6EC" }}>
+              <form onSubmit={salvaVoce} className="rounded-lg p-3 mb-2 space-y-2" style={{ background: "#F5F6F8" }}>
                 <label className="block">
                   <span className="text-[10.5px] text-slate-500">Data</span>
                   <input type="date" required value={formVoce.data} onChange={(e) => setFormVoce({ ...formVoce, data: e.target.value })}
-                    className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    className="w-full rounded-md border px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "#E2E5E9" }} />
                 </label>
                 <Input label="Obiettivi lavorati" value={formVoce.obiettivi} onChange={(v) => setFormVoce({ ...formVoce, obiettivi: v })} required />
                 <Input label="Note" value={formVoce.note} onChange={(v) => setFormVoce({ ...formVoce, note: v })} required />
@@ -885,7 +885,7 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, carnetTi
                 <p className="text-[12px] text-slate-400">Nessuna voce registrata ancora.</p>
               )}
               {(storico || []).map((s, i) => (
-                <div key={i} className="rounded-lg p-3" style={{ background: "#FAF6EC" }}>
+                <div key={i} className="rounded-lg p-3" style={{ background: "#F5F6F8" }}>
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-mono text-slate-400">{formatData(s.data)}</span>
                     <BookOpen size={12} color={COLORS.muted} />
@@ -910,7 +910,7 @@ function Input({ label, value, onChange, required, icon, type = "text" }) {
   return (
     <label className="block">
       <span className="text-[12px] font-medium text-slate-500 mb-1 block">{label}</span>
-      <div className="flex items-center gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "#E4DCC8" }}>
+      <div className="flex items-center gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "#E2E5E9" }}>
         {icon && <span style={{ color: COLORS.muted }}>{icon}</span>}
         <input
           type={isPassword && !mostra ? "password" : "text"}
@@ -946,7 +946,7 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
   const pieni = slot.postiOccupati >= slot.postiTotali;
 
   return (
-    <div className="rounded-xl overflow-hidden border" style={{ borderColor: "#E4DCC8" }}>
+    <div className="rounded-xl overflow-hidden border" style={{ borderColor: "#E2E5E9" }}>
       <button onClick={() => setAperto((v) => !v)} className="w-full flex items-stretch text-left">
         <span className="w-1.5 shrink-0" style={{ background: style.accent }} />
         <div className="flex-1 min-w-0 p-3.5 flex items-center gap-2.5">
@@ -973,7 +973,7 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
       </button>
 
       {aperto && (
-        <div className="px-3.5 pb-3.5" style={{ borderTop: "1px solid #EAE1CB" }}>
+        <div className="px-3.5 pb-3.5" style={{ borderTop: "1px solid #E7EAED" }}>
           {iscrizioni.length === 0 && (
             <div className="pt-3 text-[12px] text-slate-400">🐾 Nessuna iscrizione ancora.</div>
           )}
@@ -981,7 +981,7 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
             {iscrizioni.map((p) => {
               const caneInfo = anagrafica.find((c) => c.cane === p.cane);
               return (
-                <div key={p.id} className="flex items-center gap-2 rounded-lg p-2" style={{ background: "#FAF6EC" }}>
+                <div key={p.id} className="flex items-center gap-2 rounded-lg p-2" style={{ background: "#F5F6F8" }}>
                   <DogAvatar size={26} bg={COLORS.navy} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[12.5px] font-medium truncate" style={{ color: COLORS.ink }}>{p.cliente}</div>
@@ -1001,7 +1001,7 @@ function EventoCard({ slot, iscrizioni, daConfermare, anagrafica, onConfermaPres
                       <CheckCircle2 size={12} /> Conferma
                     </button>
                   ) : (
-                    <span className="text-[10.5px] font-mono px-2 py-1 rounded-full shrink-0" style={{ background: "#FAF6EC", color: COLORS.muted }}>
+                    <span className="text-[10.5px] font-mono px-2 py-1 rounded-full shrink-0" style={{ background: "#F5F6F8", color: COLORS.muted }}>
                       in attesa
                     </span>
                   )}
@@ -1035,7 +1035,7 @@ function CarnetRow({ c, onSave, onDelete, puoModificare }) {
 
   if (modifica) {
     return (
-      <div className="rounded-xl p-3.5 space-y-2" style={{ background: "#FAF6EC" }}>
+      <div className="rounded-xl p-3.5 space-y-2" style={{ background: "#F5F6F8" }}>
         <Input label="Nome tipologia" value={bozza.nome} onChange={(v) => setBozza({ ...bozza, nome: v })} required />
         <div className="grid grid-cols-2 gap-2">
           <Input label="N. lezioni" value={String(bozza.numeroLezioni)} onChange={(v) => setBozza({ ...bozza, numeroLezioni: v.replace(/\D/g, "") })} required />
@@ -1050,7 +1050,7 @@ function CarnetRow({ c, onSave, onDelete, puoModificare }) {
   }
 
   return (
-    <div className="rounded-xl p-3.5 flex items-center justify-between gap-2" style={{ background: "#FAF6EC" }}>
+    <div className="rounded-xl p-3.5 flex items-center justify-between gap-2" style={{ background: "#F5F6F8" }}>
       <div className="min-w-0">
         <div className="font-semibold text-sm truncate" style={{ color: COLORS.navy }}>{c.nome}</div>
         <div className="text-[12px] text-slate-500">{c.numeroLezioni} lezion{c.numeroLezioni === 1 ? "e" : "i"}</div>
@@ -1059,7 +1059,7 @@ function CarnetRow({ c, onSave, onDelete, puoModificare }) {
         <div className="font-mono text-sm" style={{ color: COLORS.green }}>€{c.prezzo}</div>
         {puoModificare && (
           <>
-            <button onClick={() => setModifica(true)} title="Modifica" className="w-7 h-7 rounded-full grid place-items-center" style={{ background: "#EFE7D6" }}>
+            <button onClick={() => setModifica(true)} title="Modifica" className="w-7 h-7 rounded-full grid place-items-center" style={{ background: "#EEF1F4" }}>
               <Pencil size={12} color={COLORS.navy} />
             </button>
             <button onClick={onDelete} title="Elimina" className="w-7 h-7 rounded-full grid place-items-center" style={{ background: "#FDECEA" }}>
@@ -1567,7 +1567,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           </button>
         </div>
       </div>
-      <div className="flex gap-1 mb-5 rounded-lg p-1" style={{ background: "#EFE7D6" }}>
+      <div className="flex gap-1 mb-5 rounded-lg p-1" style={{ background: "#EEF1F4" }}>
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -1601,7 +1601,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           <div className="space-y-2">
             <SectionLabel>🐾 Cani, conduttori e quote</SectionLabel>
 
-            <div className="flex items-center gap-2 rounded-lg border px-3 py-2 mb-2.5" style={{ borderColor: "#E4DCC8" }}>
+            <div className="flex items-center gap-2 rounded-lg border px-3 py-2 mb-2.5" style={{ borderColor: "#E2E5E9" }}>
               <Search size={14} color={COLORS.muted} />
               <input
                 value={ricercaAnagrafica}
@@ -1622,7 +1622,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                   onClick={() => setFiltroAnagrafica(f.key)}
                   className="text-[11px] font-semibold px-2.5 py-1.5 rounded-full whitespace-nowrap shrink-0"
                   style={{
-                    background: filtroAnagrafica === f.key ? COLORS.navy : "#EFE7D6",
+                    background: filtroAnagrafica === f.key ? COLORS.navy : "#EEF1F4",
                     color: filtroAnagrafica === f.key ? "#fff" : COLORS.navy,
                   }}
                 >
@@ -1633,7 +1633,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
             {puoModificare && (
               nuovoCane ? (
-                <form onSubmit={creaCane} className="rounded-2xl border p-4 mb-3 space-y-3" style={{ borderColor: "#E4DCC8" }}>
+                <form onSubmit={creaCane} className="rounded-2xl border p-4 mb-3 space-y-3" style={{ borderColor: "#E2E5E9" }}>
                   <div className="text-[13px] font-bold flex items-center gap-1.5" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
                     🐶 Nuova scheda
                   </div>
@@ -1646,7 +1646,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                   <label className="block">
                     <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita conduttore</span>
                     <input type="date" value={formCane.dataNascitaConduttore} onChange={(e) => setFormCane({ ...formCane, dataNascitaConduttore: e.target.value })}
-                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     <Input label="Razza" value={formCane.razza} onChange={(v) => setFormCane({ ...formCane, razza: v })} />
@@ -1655,12 +1655,12 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                   <label className="block">
                     <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita cane</span>
                     <input type="date" value={formCane.dataNascitaCane} onChange={(e) => setFormCane({ ...formCane, dataNascitaCane: e.target.value })}
-                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                   </label>
                   <Input label="Microchip" value={formCane.microchip} onChange={(v) => setFormCane({ ...formCane, microchip: v })} icon={<Fingerprint size={13} />} />
                   <Input label="Specializzazione" value={formCane.specializzazione} onChange={(v) => setFormCane({ ...formCane, specializzazione: v })} icon={<Award size={13} />} />
 
-                  <div className="pt-1" style={{ borderTop: "1px solid #E4DCC8" }}>
+                  <div className="pt-1" style={{ borderTop: "1px solid #E2E5E9" }}>
                     <div className="text-[11px] font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: COLORS.muted, fontFamily: "Oswald, sans-serif" }}>
                       🎖️ Brevetti
                     </div>
@@ -1671,7 +1671,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                     <label className="block">
                       <span className="text-[12px] font-medium text-slate-500 mb-1 block">Scadenza brevetto</span>
                       <input type="date" value={formCane.scadenzaBrevetto} onChange={(e) => setFormCane({ ...formCane, scadenzaBrevetto: e.target.value })}
-                        className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                        className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                     </label>
                   </div>
 
@@ -1681,7 +1681,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                   </div>
                 </form>
               ) : (
-                <button onClick={() => setNuovoCane(true)} className="w-full rounded-2xl border border-dashed p-3.5 text-[13px] font-semibold flex items-center justify-center gap-1.5 mb-3" style={{ borderColor: "#C7BFA3", color: COLORS.muted }}>
+                <button onClick={() => setNuovoCane(true)} className="w-full rounded-2xl border border-dashed p-3.5 text-[13px] font-semibold flex items-center justify-center gap-1.5 mb-3" style={{ borderColor: "#CBD2D9", color: COLORS.muted }}>
                   <Plus size={15} /> Nuovo cane / cliente
                 </button>
               )
@@ -1723,18 +1723,18 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           </div>
 
           {nuovoEvento && puoModificare && (
-            <form onSubmit={creaEvento} className="rounded-xl border p-4 mb-4 space-y-3" style={{ borderColor: "#E4DCC8" }}>
+            <form onSubmit={creaEvento} className="rounded-xl border p-4 mb-4 space-y-3" style={{ borderColor: "#E2E5E9" }}>
               <Input label="Tipo di lezione / addestramento" value={formEvento.tipo} onChange={(v) => setFormEvento({ ...formEvento, tipo: v })} required />
               <div className="grid grid-cols-2 gap-2">
                 <label className="block">
                   <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data</span>
                   <input type="date" required value={formEvento.data} onChange={(e) => setFormEvento({ ...formEvento, data: e.target.value })}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                 </label>
                 <label className="block">
                   <span className="text-[12px] font-medium text-slate-500 mb-1 block">Ora</span>
                   <input type="time" required value={formEvento.ora} onChange={(e) => setFormEvento({ ...formEvento, ora: e.target.value })}
-                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E2E5E9" }} />
                 </label>
               </div>
               <Input label="Luogo" value={formEvento.luogo} onChange={(v) => setFormEvento({ ...formEvento, luogo: v })} icon={<MapPin size={13} />} />
@@ -1832,10 +1832,10 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           <div>
             <SectionLabel>📤 Report</SectionLabel>
             <div className="flex gap-2 mb-6">
-              <button onClick={esportaExcel} className="flex-1 rounded-xl border p-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold" style={{ borderColor: "#E4DCC8", color: COLORS.navy }}>
+              <button onClick={esportaExcel} className="flex-1 rounded-xl border p-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold" style={{ borderColor: "#E2E5E9", color: COLORS.navy }}>
                 <FileDown size={15} color={COLORS.green} /> Esporta Excel
               </button>
-              <button onClick={() => window.print()} className="flex-1 rounded-xl border p-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold" style={{ borderColor: "#E4DCC8", color: COLORS.navy }}>
+              <button onClick={() => window.print()} className="flex-1 rounded-xl border p-3 flex items-center justify-center gap-1.5 text-[12.5px] font-semibold" style={{ borderColor: "#E2E5E9", color: COLORS.navy }}>
                 <Printer size={15} color={COLORS.terracotta} /> Stampa / PDF
               </button>
             </div>
@@ -1847,17 +1847,17 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                 <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: "#fff" }}>€{incassiTotali}</div>
                 <div className="text-[11px]" style={{ color: "#9FB3BF" }}>Incassato</div>
               </div>
-              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E2E5E9" }}>
                 <AlertCircle size={16} color={COLORS.red} />
                 <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: COLORS.navy }}>€{daIncassare}</div>
                 <div className="text-[11px] text-slate-500">Ancora da incassare</div>
               </div>
-              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E2E5E9" }}>
                 <Users size={16} color={COLORS.green} />
                 <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: COLORS.navy }}>{presenzeTotali}</div>
                 <div className="text-[11px] text-slate-500">Presenze registrate</div>
               </div>
-              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-xl p-3.5 border" style={{ borderColor: "#E2E5E9" }}>
                 <AlertCircle size={16} color="#F59E0B" />
                 <div className="font-mono text-xl font-semibold mt-1.5" style={{ color: COLORS.navy }}>{quoteDaVersare}</div>
                 <div className="text-[11px] text-slate-500">Soci con quote scoperte</div>
@@ -1868,12 +1868,12 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
             {chartData.length === 0 ? (
               <p className="text-[12px] text-slate-400">Ancora nessuna presenza confermata: usa "Conferma presenza" nella tab Lezioni.</p>
             ) : (
-              <div className="rounded-xl border p-3" style={{ borderColor: "#E4DCC8", height: 200 }}>
+              <div className="rounded-xl border p-3" style={{ borderColor: "#E2E5E9", height: 200 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
                     <XAxis dataKey="tipo" tick={{ fontSize: 10, fill: COLORS.muted }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: COLORS.muted }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip cursor={{ fill: "#F3F6F4" }} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E4DCC8" }} />
+                    <Tooltip cursor={{ fill: "#F5F6F8" }} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #E2E5E9" }} />
                     <Bar dataKey="valore" radius={[6, 6, 0, 0]}>
                       {chartData.map((d, i) => (
                         <Cell key={i} fill={getTipoStyle(d.tipo).accent} />
@@ -1901,7 +1901,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                 className="flex-1 py-2.5 rounded-xl text-[13px] font-bold"
                 style={{
                   fontFamily: "Oswald, sans-serif",
-                  background: settoreSetup === s.key ? COLORS.navy : "#EFE7D6",
+                  background: settoreSetup === s.key ? COLORS.navy : "#EEF1F4",
                   color: settoreSetup === s.key ? "#fff" : COLORS.navy,
                 }}
               >
@@ -1913,7 +1913,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           {/* ============ SEZIONE UTENTI ============ */}
           {settoreSetup === "utenti" && (
             <div className="space-y-5">
-              <div className="rounded-2xl border p-4" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E5E9" }}>
                 <SectionLabel>Account attivi</SectionLabel>
                 <div className="space-y-2 mb-3">
                   {istruttori.map((i) => {
@@ -1923,7 +1923,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                       lettura: { color: COLORS.muted, label: "Lettura" },
                     }[i.ruolo] || { color: COLORS.muted, label: i.ruolo };
                     return (
-                      <div key={i.username} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "#FAF6EC" }}>
+                      <div key={i.username} className="rounded-xl p-3 flex items-center gap-3" style={{ background: "#F5F6F8" }}>
                         <div className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: COLORS.navy }}>
                           <Users size={15} color="#3ECB6E" />
                         </div>
@@ -1951,7 +1951,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
                 {isAdmin ? (
                   nuovoIstruttore ? (
-                    <form onSubmit={creaIstruttore} className="rounded-xl p-3.5 space-y-3" style={{ background: "#FAF6EC" }}>
+                    <form onSubmit={creaIstruttore} className="rounded-xl p-3.5 space-y-3" style={{ background: "#F5F6F8" }}>
                       <Input label="Nome" value={formIstruttore.nome} onChange={(v) => setFormIstruttore({ ...formIstruttore, nome: v })} required />
                       <Input label="Username" value={formIstruttore.username} onChange={(v) => setFormIstruttore({ ...formIstruttore, username: v })} required icon={<Users size={13} />} />
                       <Input label="Password" type="password" value={formIstruttore.password} onChange={(v) => setFormIstruttore({ ...formIstruttore, password: v })} required icon={<Lock size={13} />} />
@@ -1961,7 +1961,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                           value={formIstruttore.ruolo}
                           onChange={(e) => setFormIstruttore({ ...formIstruttore, ruolo: e.target.value })}
                           className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none bg-white"
-                          style={{ borderColor: "#E4DCC8" }}
+                          style={{ borderColor: "#E2E5E9" }}
                         >
                           <option value="admin">Admin — accesso completo</option>
                           <option value="modificatore">Modificatore — gestisce i dati</option>
@@ -1974,7 +1974,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                       </div>
                     </form>
                   ) : (
-                    <button onClick={() => setNuovoIstruttore(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7BFA3", color: COLORS.muted }}>
+                    <button onClick={() => setNuovoIstruttore(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#CBD2D9", color: COLORS.muted }}>
                       <Plus size={15} /> Nuovo utente
                     </button>
                   )
@@ -1983,7 +1983,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                 )}
               </div>
 
-              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-2xl border overflow-hidden" style={{ borderColor: "#E2E5E9" }}>
                 <button onClick={() => setLogAperto((v) => !v)} className="w-full flex items-center justify-between p-4">
                   <span className="text-[12px] font-bold uppercase tracking-wide flex items-center gap-1.5" style={{ color: COLORS.muted, fontFamily: "Oswald, sans-serif" }}>
                     📋 Log attività {log.length > 0 && `(${log.length})`}
@@ -2005,7 +2005,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                           }[voce.azione] || { icon: BookOpen, color: COLORS.muted };
                           const Icona = stile.icon;
                           return (
-                            <div key={voce.id} className="flex items-start gap-2.5 rounded-lg p-2.5" style={{ background: "#FAF6EC" }}>
+                            <div key={voce.id} className="flex items-start gap-2.5 rounded-lg p-2.5" style={{ background: "#F5F6F8" }}>
                               <div className="w-6 h-6 rounded-full grid place-items-center shrink-0 mt-0.5" style={{ background: `${stile.color}1A` }}>
                                 <Icona size={12} color={stile.color} />
                               </div>
@@ -2031,7 +2031,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           {/* ============ SEZIONE QUOTE ============ */}
           {settoreSetup === "quote" && (
             <div className="space-y-5">
-              <div className="rounded-2xl border p-4" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E5E9" }}>
                 <SectionLabel>🎫 Tipi di carnet e prezzi</SectionLabel>
                 <div className="space-y-2 mb-3">
                   {carnetTipi.map((c) => (
@@ -2041,7 +2041,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
                 {puoModificare && (
                   nuovoCarnet ? (
-                    <form onSubmit={creaCarnet} className="rounded-xl p-3.5 space-y-3" style={{ background: "#FAF6EC" }}>
+                    <form onSubmit={creaCarnet} className="rounded-xl p-3.5 space-y-3" style={{ background: "#F5F6F8" }}>
                       <Input label="Nome tipologia" value={formCarnet.nome} onChange={(v) => setFormCarnet({ ...formCarnet, nome: v })} required />
                       <div className="grid grid-cols-2 gap-2">
                         <Input label="N. lezioni" value={formCarnet.numeroLezioni} onChange={(v) => setFormCarnet({ ...formCarnet, numeroLezioni: v.replace(/\D/g, "") })} required />
@@ -2053,16 +2053,16 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                       </div>
                     </form>
                   ) : (
-                    <button onClick={() => setNuovoCarnet(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7D3D0", color: COLORS.muted }}>
+                    <button onClick={() => setNuovoCarnet(true)} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#CBD2D9", color: COLORS.muted }}>
                       <Plus size={15} /> Nuova tipologia carnet
                     </button>
                   )
                 )}
               </div>
 
-              <div className="rounded-2xl border p-4" style={{ borderColor: "#E4DCC8" }}>
+              <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E5E9" }}>
                 <SectionLabel>🏷️ Quota associativa</SectionLabel>
-                <div className="rounded-xl p-3.5 flex items-center justify-between mb-3" style={{ background: "#FAF6EC" }}>
+                <div className="rounded-xl p-3.5 flex items-center justify-between mb-3" style={{ background: "#F5F6F8" }}>
                   <div>
                     <div className="font-semibold text-sm" style={{ color: COLORS.navy }}>Quota annuale socio</div>
                     <div className="text-[12px] text-slate-500">Rinnovo ogni anno associativo</div>
@@ -2072,7 +2072,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
                 {puoModificare && (
                   modificaQuota ? (
-                    <div className="rounded-xl p-3.5 space-y-3" style={{ background: "#FAF6EC" }}>
+                    <div className="rounded-xl p-3.5 space-y-3" style={{ background: "#F5F6F8" }}>
                       <Input label="Nuovo importo €" value={bozzaQuota} onChange={(v) => setBozzaQuota(v.replace(/\D/g, ""))} />
                       <div className="flex gap-3">
                         <button onClick={salvaQuotaAssociativa} className="text-[12.5px] font-semibold" style={{ color: COLORS.green }}>Salva</button>
@@ -2080,14 +2080,14 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => { setBozzaQuota(quotaAssociativa); setModificaQuota(true); }} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#C7D3D0", color: COLORS.muted }}>
+                    <button onClick={() => { setBozzaQuota(quotaAssociativa); setModificaQuota(true); }} className="w-full rounded-xl border border-dashed p-3 text-[13px] font-semibold flex items-center justify-center gap-1.5" style={{ borderColor: "#CBD2D9", color: COLORS.muted }}>
                       <Wallet size={15} /> Modifica importo quota associativa
                     </button>
                   )
                 )}
               </div>
 
-              <div className="rounded-2xl p-4" style={{ background: "#FAF6EC" }}>
+              <div className="rounded-2xl p-4" style={{ background: "#F5F6F8" }}>
                 <SectionLabel>💰 Registra un pagamento</SectionLabel>
                 <p className="text-[12px] text-slate-500">Quando un cliente paga (carnet o quota associativa), registralo dalla scheda del cane in Anagrafica: lo stato si aggiorna lì.</p>
               </div>
@@ -2302,8 +2302,10 @@ function AppInterno() {
         .acs-spin { animation: acs-gira 0.9s linear infinite; display: inline-block; }
       `}</style>
       {attivita && (
-        <div className="fixed top-3 right-3 z-50 w-9 h-9 rounded-full grid place-items-center shadow-lg" style={{ background: COLORS.navy }}>
-          <span className="acs-spin" style={{ fontSize: 18 }}>🐶</span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(22,50,74,0.15)" }}>
+          <div className="w-20 h-20 rounded-full grid place-items-center shadow-xl" style={{ background: COLORS.navy }}>
+            <span className="acs-spin" style={{ fontSize: 34 }}>🐶</span>
+          </div>
         </div>
       )}
       <Header role={role} setRole={setRole} onOpenInstall={() => setInstallVisible(true)} />
