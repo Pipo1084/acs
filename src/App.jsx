@@ -3,7 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import * as XLSX from "xlsx";
 import {
   PawPrint, Calendar, Clock, Phone, Mail, Lock, CheckCircle2,
-  Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical, MoreHorizontal, Share, Download, MapPin,
+  Plus, ChevronRight, ChevronDown, ShieldCheck, Smartphone, Share2, MoreVertical, MoreHorizontal, Share, Download, MapPin, RefreshCw,
   X, BookOpen, Dog, Award, ArrowLeft, Fingerprint, Wallet, AlertCircle, Pencil, Users, TrendingUp, LogOut, LogIn, Trash2, Search, FileDown, Printer, Eye, EyeOff
 } from "lucide-react";
 
@@ -17,22 +17,46 @@ import {
 
 const API_URL = "https://script.google.com/macros/s/AKfycbzPC82p8AE36an6It88wglgskoxgXJ-53V18eJca4CKtDlknVk8gK92ctCEKV9RwfIewA/exec";
 
+// Contatore globale delle chiamate al backend in corso, usato per mostrare
+// un indicatore di caricamento automaticamente per QUALSIASI chiamata,
+// senza dover modificare ogni singola funzione una per una.
+let contatoreAttivita = 0;
+let ascoltatoreAttivita = null;
+function impostaAscoltatoreAttivita(fn) {
+  ascoltatoreAttivita = fn;
+  if (fn) fn(contatoreAttivita > 0);
+}
+function segnalaAttivita(delta) {
+  contatoreAttivita += delta;
+  if (ascoltatoreAttivita) ascoltatoreAttivita(contatoreAttivita > 0);
+}
+
 // Helper per chiamare il backend Apps Script (POST con Content-Type text/plain
 // per evitare il preflight CORS, che Apps Script non gestisce)
 async function chiamaAPI(action, payload = {}) {
-  const risposta = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" },
-    body: JSON.stringify({ action, ...payload }),
-  });
-  return risposta.json();
+  segnalaAttivita(1);
+  try {
+    const risposta = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, ...payload }),
+    });
+    return await risposta.json();
+  } finally {
+    segnalaAttivita(-1);
+  }
 }
 
 // Helper per le azioni di sola lettura (GET), con parametri opzionali per l'autenticazione
 async function chiamaAPIGet(action, params = {}) {
-  const query = new URLSearchParams({ action, ...params }).toString();
-  const risposta = await fetch(`${API_URL}?${query}`);
-  return risposta.json();
+  segnalaAttivita(1);
+  try {
+    const query = new URLSearchParams({ action, ...params }).toString();
+    const risposta = await fetch(`${API_URL}?${query}`);
+    return await risposta.json();
+  } finally {
+    segnalaAttivita(-1);
+  }
 }
 
 // Il backend restituisce le righe del foglio con i nomi delle colonne
@@ -230,7 +254,7 @@ function Header({ role, setRole, onOpenInstall }) {
 
 /* ---------- Vista Cliente ---------- */
 
-function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagrafica }) {
+function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagrafica, onAggiorna }) {
   const [prenotato, setPrenotato] = useState(null);
   const [riconosciuto, setRiconosciuto] = useState(null);
   const [inSospeso, setInSospeso] = useState(false);
@@ -412,12 +436,17 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
 
   return (
     <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 py-5">
-      <div className="mb-5">
-        <div className="text-2xl font-bold leading-tight flex items-center gap-2" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
-          Prenota una lezione <span>🐶</span>
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <div>
+          <div className="text-2xl font-bold leading-tight flex items-center gap-2" style={{ color: COLORS.navy, fontFamily: "Oswald, sans-serif" }}>
+            Prenota una lezione <span>🐶</span>
+          </div>
+          <div className="w-10 h-[3px] rounded-full mt-1.5 mb-2" style={{ background: COLORS.terracotta }} />
+          <div className="text-[13px] text-slate-500">Scegli il turno, ti aspettiamo al campo!</div>
         </div>
-        <div className="w-10 h-[3px] rounded-full mt-1.5 mb-2" style={{ background: COLORS.terracotta }} />
-        <div className="text-[13px] text-slate-500">Scegli il turno, ti aspettiamo al campo!</div>
+        <button onClick={onAggiorna} className="shrink-0 mt-1 p-2 rounded-full" style={{ background: "#EFE7D6" }} title="Aggiorna">
+          <RefreshCw size={16} color={COLORS.navy} />
+        </button>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
         {eventi.map((slot) => (
@@ -1078,30 +1107,16 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     // anche una copia visibile subito in questa sessione, senza aspettare un refresh
   }
 
-  async function caricaUtenti(username, password) {
+  async function caricaTuttoDopoLogin(username, password) {
     try {
-      const url = `${API_URL}?action=getUtenti&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-      const res = await fetch(url);
-      const dati = await res.json();
-      if (Array.isArray(dati)) setIstruttori(dati);
-    } catch (err) {
-      // se fallisce, la lista resta vuota: non è bloccante per il resto dell'app
-    }
-  }
+      const dati = await chiamaAPIGet("getDatiIniziali", { username, password });
+      if (dati.errore) return; // non autorizzato o altro errore: non tocchiamo i dati già presenti
 
-  async function caricaDatiReali(username, password) {
-    try {
-      const [anagraficaRes, prenotazioniRes, carnetRes, acquistiRes, impostazioniRes] = await Promise.all([
-        chiamaAPIGet("getAnagrafica", { username, password }),
-        chiamaAPIGet("getPrenotazioni", { username, password }),
-        chiamaAPIGet("getCarnet"),
-        chiamaAPIGet("getAcquisti", { username, password }),
-        chiamaAPIGet("getImpostazioni"),
-      ]);
-      const acquistiMappati = Array.isArray(acquistiRes) ? acquistiRes.map(mappaAcquisto) : [];
-      if (Array.isArray(acquistiRes)) setAcquisti(acquistiMappati);
-      if (Array.isArray(anagraficaRes)) {
-        setAnagrafica(anagraficaRes.map(mappaCane).map((c) => {
+      const acquistiMappati = Array.isArray(dati.acquisti) ? dati.acquisti.map(mappaAcquisto) : [];
+      setAcquisti(acquistiMappati);
+
+      if (Array.isArray(dati.anagrafica)) {
+        setAnagrafica(dati.anagrafica.map(mappaCane).map((c) => {
           const suoiAcquisti = acquistiMappati.filter((a) => a.cane === c.cane);
           return {
             ...c,
@@ -1110,11 +1125,18 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           };
         }));
       }
-      if (Array.isArray(prenotazioniRes)) setPrenotazioni(prenotazioniRes.map(mappaPrenotazione));
-      if (Array.isArray(carnetRes)) setCarnetTipi(carnetRes.map(mappaCarnet));
-      if (impostazioniRes && typeof impostazioniRes.quotaAssociativa === "number") setQuotaAssociativa(impostazioniRes.quotaAssociativa);
+      if (Array.isArray(dati.prenotazioni)) setPrenotazioni(dati.prenotazioni.map(mappaPrenotazione));
+      if (Array.isArray(dati.carnet)) setCarnetTipi(dati.carnet.map(mappaCarnet));
+      if (dati.impostazioni && typeof dati.impostazioni.quotaAssociativa === "number") setQuotaAssociativa(dati.impostazioni.quotaAssociativa);
+      if (Array.isArray(dati.utenti)) setIstruttori(dati.utenti);
+      if (Array.isArray(dati.log)) {
+        setLog(dati.log.map((r) => ({
+          id: r.id, quando: new Date((r.data_ora || "").replace(" ", "T")),
+          istruttore: r.istruttore, azione: r.azione, entita: r.entita, dettaglio: r.dettaglio,
+        })));
+      }
     } catch (err) {
-      // se fallisce il caricamento, restano visibili i dati precedenti (demo)
+      // se fallisce il caricamento, restano visibili i dati precedenti
     }
   }
 
@@ -1134,8 +1156,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
         setIstruttoreLoggato(risposta.utente);
         setAuth(true);
         registraLog(risposta.utente.nome, "accesso", "Utente", `${risposta.utente.nome} ha effettuato l'accesso`);
-        caricaUtenti(usernameLogin, pwd);
-        caricaDatiReali(usernameLogin, pwd);
+        caricaTuttoDopoLogin(usernameLogin, pwd);
       } else {
         setErroreMessaggio(risposta.errore || "Username o password non corretti.");
         setErrore(true);
@@ -1537,9 +1558,14 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
         <div className="text-[12.5px]" style={{ color: COLORS.muted }}>
           Ciao, <b style={{ color: COLORS.navy }}>{istruttoreLoggato.nome}</b>
         </div>
-        <button onClick={logout} className="text-[11.5px] font-semibold flex items-center gap-1" style={{ color: COLORS.muted }}>
-          <LogOut size={13} /> Esci
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => caricaTuttoDopoLogin(istruttoreLoggato.username, pwd)} className="text-[11.5px] font-semibold flex items-center gap-1" style={{ color: COLORS.navy }}>
+            <RefreshCw size={13} /> Aggiorna
+          </button>
+          <button onClick={logout} className="text-[11.5px] font-semibold flex items-center gap-1" style={{ color: COLORS.muted }}>
+            <LogOut size={13} /> Esci
+          </button>
+        </div>
       </div>
       <div className="flex gap-1 mb-5 rounded-lg p-1" style={{ background: "#EFE7D6" }}>
         {tabs.map((t) => (
@@ -2209,12 +2235,26 @@ function AppInterno() {
   const [eventi, setEventi] = useState(backendCollegato ? [] : MOCK_DISPONIBILITA);
   const [anagrafica, setAnagrafica] = useState(backendCollegato ? [] : MOCK_ANAGRAFICA);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [attivita, setAttivita] = useState(false);
+
+  async function caricaEventiPubblici() {
+    if (!backendCollegato) return;
+    try {
+      const dati = await chiamaAPIGet("getDisponibilita");
+      if (Array.isArray(dati)) setEventi(dati.map(mappaEvento));
+    } catch (err) {
+      // se fallisce, la lista resta quella precedente
+    }
+  }
 
   useEffect(() => {
-    if (!backendCollegato) return; // backend non ancora collegato: resta sui dati di esempio
-    chiamaAPIGet("getDisponibilita")
-      .then((dati) => { if (Array.isArray(dati)) setEventi(dati.map(mappaEvento)); })
-      .catch(() => {}); // se fallisce, la lista resta vuota (nessun dato finto mostrato per errore)
+    caricaEventiPubblici();
+  }, []);
+
+  // Collega l'indicatore di caricamento a QUALSIASI chiamata al backend
+  useEffect(() => {
+    impostaAscoltatoreAttivita(setAttivita);
+    return () => impostaAscoltatoreAttivita(null);
   }, []);
 
   // Cattura il prompt nativo del browser per installare l'app: disponibile
@@ -2258,7 +2298,14 @@ function AppInterno() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap');
         .font-mono { font-family: 'IBM Plex Mono', monospace; }
+        @keyframes acs-gira { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .acs-spin { animation: acs-gira 0.9s linear infinite; display: inline-block; }
       `}</style>
+      {attivita && (
+        <div className="fixed top-3 right-3 z-50 w-9 h-9 rounded-full grid place-items-center shadow-lg" style={{ background: COLORS.navy }}>
+          <span className="acs-spin" style={{ fontSize: 18 }}>🐶</span>
+        </div>
+      )}
       <Header role={role} setRole={setRole} onOpenInstall={() => setInstallVisible(true)} />
       {installVisible && <InstallBanner onClose={() => setInstallVisible(false)} deferredPrompt={deferredPrompt} onInstallClick={installaApp} />}
       {/* Entrambe le viste restano montate: così l'istruttore non perde la sessione
@@ -2270,6 +2317,7 @@ function AppInterno() {
           eventi={eventi}
           setEventi={setEventi}
           anagrafica={anagrafica}
+          onAggiorna={caricaEventiPubblici}
         />
       </div>
       <div style={{ display: role === "istruttore" ? "block" : "none" }}>
