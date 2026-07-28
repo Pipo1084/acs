@@ -2181,10 +2181,23 @@ function AppInterno() {
   async function caricaEventiPubblici() {
     if (!backendCollegato) return;
     try {
-      const dati = await chiamaAPIGet("getDisponibilita");
-      if (Array.isArray(dati)) setEventi(dati.map(mappaEvento));
+      const [datiEventi, datiPartecipanti] = await Promise.all([
+        chiamaAPIGet("getDisponibilita"),
+        chiamaAPIGet("getPartecipantiPubblici"),
+      ]);
+
+      if (Array.isArray(datiEventi)) {
+        setEventi(datiEventi.map(mappaEvento));
+      }
+
+      // Per l'area pubblica carichiamo soltanto i dati minimi necessari:
+      // turno, nome del cane e stato. I dati personali del proprietario
+      // continuano a essere disponibili esclusivamente dopo il login.
+      if (Array.isArray(datiPartecipanti)) {
+        setPrenotazioni(datiPartecipanti.map(mappaPrenotazione));
+      }
     } catch (err) {
-      // se fallisce, la lista resta quella precedente
+      // Se il caricamento fallisce, restano visualizzati i dati precedenti.
     }
   }
 
