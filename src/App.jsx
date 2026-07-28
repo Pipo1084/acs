@@ -15,7 +15,7 @@ import {
    dell'app web di Apps Script (API_URL).
    ============================================================ */
 
-const API_URL = "https://script.google.com/macros/s/AKfycbzPC82p8AE36an6It88wglgskoxgXJ-53V18eJca4CKtDlknVk8gK92ctCEKV9RwfIewA/exec"; // placeholder
+const API_URL = "https://script.google.com/macros/s/AKfycbzPC82p8AE36an6It88wglgskoxgXJ-53V18eJca4CKtDlknVk8gK92ctCEKV9RwfIewA/exec";
 
 // Helper per chiamare il backend Apps Script (POST con Content-Type text/plain
 // per evitare il preflight CORS, che Apps Script non gestisce)
@@ -260,33 +260,47 @@ function ClienteView({ prenotazioni, setPrenotazioni, eventi, setEventi, anagraf
   const matchInCorso = campiBaseCompleti ? trovaUtente(form) : null;
   const sembraNuovo = campiBaseCompleti && !matchInCorso;
 
-  function prenota(e) {
+  async function prenota(e) {
     e.preventDefault();
     const match = trovaUtente(form);
-    const id = "p" + Date.now();
 
-    if (match) {
-      // Socio riconosciuto: la prenotazione occupa subito un posto reale
-      setPrenotazioni((prev) => [
-        ...prev,
-        { id, slotId: slotScelto.id, cliente: form.nome, cane: form.cane, telefono: form.telefono, stato: "in attesa" },
-      ]);
-      setEventi((prev) => prev.map((s) => (s.id === slotScelto.id ? { ...s, postiOccupati: s.postiOccupati + 1 } : s)));
-      setInSospeso(false);
-    } else {
-      // Nuovo utente non ancora in anagrafica: richiesta in sospeso, non occupa il posto
-      // finché l'istruttore non la approva (crea la scheda con razza/età fornite)
-      setPrenotazioni((prev) => [
-        ...prev,
-        { id, slotId: slotScelto.id, cliente: form.nome, cane: form.cane, telefono: form.telefono, stato: "in sospeso", nuovo: true, razza: form.razza, eta: form.eta },
-      ]);
-      setInSospeso(true);
+    try {
+      const risposta = await chiamaAPI("creaPrenotazione", {
+        disponibilitaId: slotScelto.id, clienteNome: form.nome, clienteEmail: "", clienteTelefono: form.telefono,
+        caneNome: form.cane, acquistoId: "", sospeso: !match,
+      });
+
+      if (!risposta.ok) {
+        alert(risposta.errore || "Non è stato possibile salvare la prenotazione. Riprova.");
+        return;
+      }
+
+      const id = risposta.id;
+
+      if (match) {
+        // Socio riconosciuto: la prenotazione occupa subito un posto reale
+        setPrenotazioni((prev) => [
+          ...prev,
+          { id, slotId: slotScelto.id, cliente: form.nome, cane: form.cane, telefono: form.telefono, stato: "in attesa" },
+        ]);
+        setEventi((prev) => prev.map((s) => (s.id === slotScelto.id ? { ...s, postiOccupati: s.postiOccupati + 1 } : s)));
+        setInSospeso(false);
+      } else {
+        // Nuovo utente non ancora in anagrafica: richiesta in sospeso, non occupa il posto
+        // finché l'istruttore non la approva (crea la scheda con razza/età fornite)
+        setPrenotazioni((prev) => [
+          ...prev,
+          { id, slotId: slotScelto.id, cliente: form.nome, cane: form.cane, telefono: form.telefono, stato: "in sospeso", nuovo: true, razza: form.razza, eta: form.eta },
+        ]);
+        setInSospeso(true);
+      }
+      setRiconosciuto(match);
+      setPrenotato(slotScelto);
+      setSlotScelto(null);
+      setForm({ nome: "", telefono: "", cane: "", razza: "", eta: "" });
+    } catch (err) {
+      alert("Impossibile contattare il server. Controlla la connessione e riprova.");
     }
-    // chiamaAPI_creaPrenotazione({...form, disponibilitaId: slotScelto.id, anagraficaId: match?.cane})
-    setRiconosciuto(match);
-    setPrenotato(slotScelto);
-    setSlotScelto(null);
-    setForm({ nome: "", telefono: "", cane: "", razza: "", eta: "" });
   }
 
   if (slotScelto) {
@@ -1077,11 +1091,12 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
 
   async function caricaDatiReali(username, password) {
     try {
-      const [anagraficaRes, prenotazioniRes, carnetRes, acquistiRes] = await Promise.all([
+      const [anagraficaRes, prenotazioniRes, carnetRes, acquistiRes, impostazioniRes] = await Promise.all([
         chiamaAPIGet("getAnagrafica", { username, password }),
         chiamaAPIGet("getPrenotazioni", { username, password }),
         chiamaAPIGet("getCarnet"),
         chiamaAPIGet("getAcquisti", { username, password }),
+        chiamaAPIGet("getImpostazioni"),
       ]);
       const acquistiMappati = Array.isArray(acquistiRes) ? acquistiRes.map(mappaAcquisto) : [];
       if (Array.isArray(acquistiRes)) setAcquisti(acquistiMappati);
@@ -1097,6 +1112,7 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
       }
       if (Array.isArray(prenotazioniRes)) setPrenotazioni(prenotazioniRes.map(mappaPrenotazione));
       if (Array.isArray(carnetRes)) setCarnetTipi(carnetRes.map(mappaCarnet));
+      if (impostazioniRes && typeof impostazioniRes.quotaAssociativa === "number") setQuotaAssociativa(impostazioniRes.quotaAssociativa);
     } catch (err) {
       // se fallisce il caricamento, restano visibili i dati precedenti (demo)
     }
@@ -1167,13 +1183,24 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     { key: "impostazioni", label: "⚙️ Setup" },
   ];
 
-  function aggiungiStorico(caneNome, voce) {
+  async function aggiungiStorico(caneNome, voce) {
     setStorico((prev) => ({
       ...prev,
       [caneNome]: [{ ...voce, istruttore: istruttoreLoggato.nome }, ...(prev[caneNome] || [])],
     }));
-    registraLog(istruttoreLoggato.nome, "creazione", "Storico", `Nuova voce per ${caneNome}`);
-    // chiamaAPI_addStorico({ caneNome, ...voce, username: istruttoreLoggato.username, password })
+    try {
+      const risposta = await chiamaAPI("addStorico", {
+        caneNome, obiettivi: voce.obiettivi, note: voce.note,
+        username: istruttoreLoggato.username, password: pwd,
+      });
+      if (risposta.ok) {
+        registraLog(istruttoreLoggato.nome, "creazione", "Storico", `Nuova voce per ${caneNome}`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile salvare la voce sul backend (resta visibile solo in questa sessione).");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend: la voce resta visibile solo in questa sessione.");
+    }
   }
 
   async function confermaPresenza(prenotazioneId, caneNome) {
@@ -1202,34 +1229,49 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     }
   }
 
-  function approvaRichiesta(richiesta) {
-    // Se il cane non è ancora in anagrafica, gli creiamo la scheda con i dati raccolti alla prenotazione
+  async function approvaRichiesta(richiesta) {
     const esiste = anagrafica.some((c) => c.cane === richiesta.cane);
-    if (!esiste) {
-      const oggi = new Date();
-      const scadenzaQuota = new Date(oggi);
-      scadenzaQuota.setFullYear(scadenzaQuota.getFullYear() + 1);
-      setAnagrafica((prev) => [
-        ...prev,
-        {
-          cane: richiesta.cane, microchip: "", eta: richiesta.eta || "", razza: richiesta.razza || "",
-          specializzazione: "", lezioniResidue: 0, lezioniTotali: 0,
-          conduttore: richiesta.cliente, telefono: richiesta.telefono, email: "",
-          quotaAssociativa: { importo: quotaAssociativa, versato: 0, scadenza: scadenzaQuota.toISOString().slice(0, 10), stato: "da versare" },
-          quotaCarnet: { importo: 0, versato: 0, scadenza: oggi.toISOString().slice(0, 10), stato: "da versare" },
-        },
-      ]);
+    try {
+      const risposta = await chiamaAPI("approvaRichiesta", {
+        prenotazioneId: richiesta.id, razza: richiesta.razza || "", eta: richiesta.eta || "",
+        username: istruttoreLoggato.username, password: pwd,
+      });
+      if (!risposta.ok) {
+        alert(risposta.errore || "Non è stato possibile approvare la richiesta.");
+        return;
+      }
+      // Se il cane non era ancora in anagrafica, gli creiamo la scheda con i dati raccolti alla prenotazione
+      if (!esiste) {
+        setAnagrafica((prev) => [
+          ...prev,
+          {
+            cane: richiesta.cane, microchip: "", eta: richiesta.eta || "", razza: richiesta.razza || "",
+            specializzazione: "", lezioniResidue: 0, lezioniTotali: 0,
+            conduttore: richiesta.cliente, telefono: richiesta.telefono, email: "",
+            quotaAssociativa: { importo: quotaAssociativa, versato: 0, scadenza: "", stato: "da versare" },
+          },
+        ]);
+      }
+      setPrenotazioni((prev) => prev.map((p) => (p.id === richiesta.id ? { ...p, stato: "in attesa", nuovo: false } : p)));
+      setEventi((prev) => prev.map((s) => (s.id === richiesta.slotId ? { ...s, postiOccupati: s.postiOccupati + 1 } : s)));
+      registraLog(istruttoreLoggato.nome, esiste ? "modifica" : "creazione", "Richiesta", `Approvata iscrizione di ${richiesta.cliente} · ${richiesta.cane}`);
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
     }
-    setPrenotazioni((prev) => prev.map((p) => (p.id === richiesta.id ? { ...p, stato: "in attesa", nuovo: false } : p)));
-    setEventi((prev) => prev.map((s) => (s.id === richiesta.slotId ? { ...s, postiOccupati: s.postiOccupati + 1 } : s)));
-    registraLog(istruttoreLoggato.nome, esiste ? "modifica" : "creazione", "Richiesta", `Approvata iscrizione di ${richiesta.cliente} · ${richiesta.cane}`);
-    // chiamaAPI_approvaRichiesta({ prenotazioneId: richiesta.id, username: istruttoreLoggato.username, password })
   }
 
-  function rifiutaRichiesta(richiesta) {
-    setPrenotazioni((prev) => prev.filter((p) => p.id !== richiesta.id));
-    registraLog(istruttoreLoggato.nome, "eliminazione", "Richiesta", `Rifiutata iscrizione di ${richiesta.cliente} · ${richiesta.cane}`);
-    // chiamaAPI_rifiutaRichiesta({ prenotazioneId: richiesta.id, username: istruttoreLoggato.username, password })
+  async function rifiutaRichiesta(richiesta) {
+    try {
+      const risposta = await chiamaAPI("rifiutaRichiesta", { prenotazioneId: richiesta.id, username: istruttoreLoggato.username, password: pwd });
+      if (!risposta.ok) {
+        alert(risposta.errore || "Non è stato possibile rifiutare la richiesta.");
+        return;
+      }
+      setPrenotazioni((prev) => prev.filter((p) => p.id !== richiesta.id));
+      registraLog(istruttoreLoggato.nome, "eliminazione", "Richiesta", `Rifiutata iscrizione di ${richiesta.cliente} · ${richiesta.cane}`);
+    } catch (err) {
+      alert("Impossibile contattare il backend.");
+    }
   }
 
   async function creaIstruttore(e) {
@@ -1473,11 +1515,20 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     }
   }
 
-  function salvaQuotaAssociativa() {
-    setQuotaAssociativa(Number(bozzaQuota) || 0);
-    registraLog(istruttoreLoggato.nome, "modifica", "Quota associativa", `Importo aggiornato a €${bozzaQuota}`);
+  async function salvaQuotaAssociativa() {
+    const importo = Number(bozzaQuota) || 0;
+    setQuotaAssociativa(importo);
     setModificaQuota(false);
-    // chiamaAPI_impostaQuotaAssociativa({ importo: bozzaQuota, password })
+    try {
+      const risposta = await chiamaAPI("impostaQuotaAssociativa", { importo, username: istruttoreLoggato.username, password: pwd });
+      if (risposta.ok) {
+        registraLog(istruttoreLoggato.nome, "modifica", "Quota associativa", `Importo aggiornato a €${importo}`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile salvare l'importo sul backend (resta visibile solo in questa sessione).");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend: l'importo resta visibile solo in questa sessione.");
+    }
   }
 
   return (
