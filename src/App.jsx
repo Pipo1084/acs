@@ -47,8 +47,11 @@ function mappaEvento(r) {
 function mappaCane(r) {
   return {
     cane: r.cane_nome, conduttore: r.proprietario_nome, email: r.proprietario_email, telefono: r.proprietario_telefono,
-    razza: r.razza || "", eta: r.eta || "", specializzazione: r.specializzazione || "", microchip: "",
-    // Queste informazioni non sono ancora salvate nel foglio Anagrafica del backend:
+    razza: r.razza || "", eta: r.eta || "", specializzazione: r.specializzazione || "",
+    dataNascitaConduttore: r.data_nascita_conduttore || "", dataNascitaCane: r.data_nascita_cane || "",
+    microchip: r.microchip || "", brevettoAcs: r.brevetto_acs || "", brevettoSalvataggio: r.brevetto_salvataggio || "",
+    scadenzaBrevetto: r.scadenza_brevetto || "",
+    // Queste informazioni non hanno ancora una colonna nel foglio Anagrafica del backend:
     // per ora restano solo visualizzate/modificate lato app, senza persistere.
     lezioniResidue: 0, lezioniTotali: 0,
     quotaAssociativa: { importo: 0, versato: 0, scadenza: "", stato: "da versare" },
@@ -651,16 +654,24 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, puoModif
             {!modifica ? (
               <div className="grid grid-cols-2 gap-2 text-[12.5px]">
                 <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>
-                  <Fingerprint size={13} color={COLORS.muted} /> {c.microchip}
+                  <Fingerprint size={13} color={COLORS.muted} /> {c.microchip || "—"}
                 </div>
                 <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>
-                  <Calendar size={13} color={COLORS.muted} /> {c.eta}
+                  <Award size={13} color={COLORS.muted} /> {c.eta || "—"}
+                </div>
+                <div className="flex items-center gap-1.5 col-span-2" style={{ color: COLORS.ink }}>
+                  <Calendar size={13} color={COLORS.muted} /> Nato il {c.dataNascitaCane ? formatData(c.dataNascitaCane) : "—"}
                 </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-2">
-                <Input label="Microchip" value={bozza.microchip} onChange={(v) => setBozza({ ...bozza, microchip: v })} />
-                <Input label="Età" value={bozza.eta} onChange={(v) => setBozza({ ...bozza, eta: v })} />
+                <Input label="Microchip" value={bozza.microchip || ""} onChange={(v) => setBozza({ ...bozza, microchip: v })} />
+                <Input label="Età" value={bozza.eta || ""} onChange={(v) => setBozza({ ...bozza, eta: v })} />
+                <label className="block col-span-2">
+                  <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita cane</span>
+                  <input type="date" value={bozza.dataNascitaCane || ""} onChange={(e) => setBozza({ ...bozza, dataNascitaCane: e.target.value })}
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                </label>
               </div>
             )}
           </div>
@@ -679,12 +690,46 @@ function AnagraficaCard({ c, onUpdate, onDelete, storico, onAddStorico, puoModif
                 <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>
                   <Mail size={13} color={COLORS.muted} /> {c.email}
                 </div>
+                <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>
+                  <Calendar size={13} color={COLORS.muted} /> Nato il {c.dataNascitaConduttore ? formatData(c.dataNascitaConduttore) : "—"}
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
                 <Input label="Nome conduttore" value={bozza.conduttore} onChange={(v) => setBozza({ ...bozza, conduttore: v })} icon={<PawPrint size={13} />} />
                 <Input label="Telefono" value={bozza.telefono} onChange={(v) => setBozza({ ...bozza, telefono: v })} icon={<Phone size={13} />} />
                 <Input label="Email" value={bozza.email} onChange={(v) => setBozza({ ...bozza, email: v })} icon={<Mail size={13} />} />
+                <label className="block">
+                  <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita conduttore</span>
+                  <input type="date" value={bozza.dataNascitaConduttore || ""} onChange={(e) => setBozza({ ...bozza, dataNascitaConduttore: e.target.value })}
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                </label>
+              </div>
+            )}
+          </div>
+
+          {/* Brevetti */}
+          <div>
+            <SectionLabel>🎖️ Brevetti</SectionLabel>
+            {!modifica ? (
+              <div className="space-y-1.5 text-[12.5px]">
+                <div style={{ color: COLORS.ink }}>Brevetto ACS n° {c.brevettoAcs || "—"}</div>
+                <div style={{ color: COLORS.ink }}>Brevetto salvataggio n° {c.brevettoSalvataggio || "—"}</div>
+                <div className="flex items-center gap-1.5" style={{ color: COLORS.ink }}>
+                  <Calendar size={13} color={COLORS.muted} /> Scadenza: {c.scadenzaBrevetto ? formatData(c.scadenzaBrevetto) : "—"}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Input label="Brevetto ACS n°" value={bozza.brevettoAcs || ""} onChange={(v) => setBozza({ ...bozza, brevettoAcs: v })} />
+                  <Input label="Brevetto salvataggio n°" value={bozza.brevettoSalvataggio || ""} onChange={(v) => setBozza({ ...bozza, brevettoSalvataggio: v })} />
+                </div>
+                <label className="block">
+                  <span className="text-[12px] font-medium text-slate-500 mb-1 block">Scadenza brevetto</span>
+                  <input type="date" value={bozza.scadenzaBrevetto || ""} onChange={(e) => setBozza({ ...bozza, scadenzaBrevetto: e.target.value })}
+                    className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                </label>
               </div>
             )}
           </div>
@@ -923,14 +968,14 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
   const [tab, setTab] = useState("anagrafica");
   const [nuovoEvento, setNuovoEvento] = useState(false);
   const [formEvento, setFormEvento] = useState({ data: "", ora: "", tipo: "", luogo: "", postiTotali: "" });
-  const [carnetTipi, setCarnetTipi] = useState(MOCK_CARNET);
+  const [carnetTipi, setCarnetTipi] = useState(API_URL.includes("INSERISCI_QUI") ? MOCK_CARNET : []);
   const [nuovoCarnet, setNuovoCarnet] = useState(false);
   const [formCarnet, setFormCarnet] = useState({ nome: "", numeroLezioni: "", prezzo: "" });
   const [quotaAssociativa, setQuotaAssociativa] = useState(50);
   const [modificaQuota, setModificaQuota] = useState(false);
   const [ricercaAnagrafica, setRicercaAnagrafica] = useState("");
   const [nuovoCane, setNuovoCane] = useState(false);
-  const [formCane, setFormCane] = useState({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "" });
+  const [formCane, setFormCane] = useState({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "", dataNascitaConduttore: "", dataNascitaCane: "", microchip: "", brevettoAcs: "", brevettoSalvataggio: "", scadenzaBrevetto: "" });
   const [settoreSetup, setSettoreSetup] = useState("utenti");
   const [logAperto, setLogAperto] = useState(false);
   const [filtroAnagrafica, setFiltroAnagrafica] = useState("tutti");
@@ -1159,10 +1204,26 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
     }
   }
 
-  function aggiornaCane(caneNome, nuoviDati) {
+  async function aggiornaCane(caneNome, nuoviDati) {
+    const completo = { ...(anagrafica.find((c) => c.cane === caneNome) || {}), ...nuoviDati };
     setAnagrafica((prev) => prev.map((c) => (c.cane === caneNome ? { ...c, ...nuoviDati } : c)));
-    registraLog(istruttoreLoggato.nome, "modifica", "Anagrafica", `Scheda di ${caneNome} aggiornata`);
-    // chiamaAPI_aggiornaAnagrafica({ caneNome, ...nuoviDati, password })
+    try {
+      const risposta = await chiamaAPI("aggiornaCane", {
+        caneNome, conduttore: completo.conduttore, telefono: completo.telefono, email: completo.email,
+        razza: completo.razza, eta: completo.eta, specializzazione: completo.specializzazione,
+        dataNascitaConduttore: completo.dataNascitaConduttore, dataNascitaCane: completo.dataNascitaCane,
+        microchip: completo.microchip, brevettoAcs: completo.brevettoAcs, brevettoSalvataggio: completo.brevettoSalvataggio,
+        scadenzaBrevetto: completo.scadenzaBrevetto,
+        username: istruttoreLoggato.username, password: pwd,
+      });
+      if (risposta.ok) {
+        registraLog(istruttoreLoggato.nome, "modifica", "Anagrafica", `Scheda di ${caneNome} aggiornata`);
+      } else {
+        alert(risposta.errore || "Non è stato possibile salvare le modifiche sul backend (restano visibili solo in questa sessione).");
+      }
+    } catch (err) {
+      alert("Impossibile contattare il backend: le modifiche restano visibili solo in questa sessione.");
+    }
   }
 
   async function creaCane(e) {
@@ -1171,6 +1232,9 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
       const risposta = await chiamaAPI("creaCane", {
         caneNome: formCane.cane, conduttore: formCane.conduttore, telefono: formCane.telefono, email: formCane.email,
         razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione,
+        dataNascitaConduttore: formCane.dataNascitaConduttore, dataNascitaCane: formCane.dataNascitaCane,
+        microchip: formCane.microchip, brevettoAcs: formCane.brevettoAcs, brevettoSalvataggio: formCane.brevettoSalvataggio,
+        scadenzaBrevetto: formCane.scadenzaBrevetto,
         username: istruttoreLoggato.username, password: pwd,
       });
       if (risposta.ok) {
@@ -1178,14 +1242,17 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
           ...prev,
           {
             cane: formCane.cane, conduttore: formCane.conduttore, telefono: formCane.telefono, email: formCane.email,
-            razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione, microchip: "",
+            razza: formCane.razza, eta: formCane.eta, specializzazione: formCane.specializzazione,
+            dataNascitaConduttore: formCane.dataNascitaConduttore, dataNascitaCane: formCane.dataNascitaCane,
+            microchip: formCane.microchip, brevettoAcs: formCane.brevettoAcs, brevettoSalvataggio: formCane.brevettoSalvataggio,
+            scadenzaBrevetto: formCane.scadenzaBrevetto,
             lezioniResidue: 0, lezioniTotali: 0,
             quotaAssociativa: { importo: 0, versato: 0, scadenza: "", stato: "da versare" },
             quotaCarnet: { importo: 0, versato: 0, scadenza: "", stato: "da versare" },
           },
         ]);
         registraLog(istruttoreLoggato.nome, "creazione", "Anagrafica", `Nuova scheda: ${formCane.cane} (${formCane.conduttore})`);
-        setFormCane({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "" });
+        setFormCane({ cane: "", conduttore: "", telefono: "", email: "", razza: "", eta: "", specializzazione: "", dataNascitaConduttore: "", dataNascitaCane: "", microchip: "", brevettoAcs: "", brevettoSalvataggio: "", scadenzaBrevetto: "" });
         setNuovoCane(false);
       } else {
         alert(risposta.errore || "Non è stato possibile creare la scheda.");
@@ -1372,11 +1439,38 @@ function IstruttoreView({ prenotazioni, setPrenotazioni, eventi, setEventi, anag
                     <Input label="Telefono" value={formCane.telefono} onChange={(v) => setFormCane({ ...formCane, telefono: v })} icon={<Phone size={13} />} />
                     <Input label="Email" value={formCane.email} onChange={(v) => setFormCane({ ...formCane, email: v })} icon={<Mail size={13} />} />
                   </div>
+                  <label className="block">
+                    <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita conduttore</span>
+                    <input type="date" value={formCane.dataNascitaConduttore} onChange={(e) => setFormCane({ ...formCane, dataNascitaConduttore: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                  </label>
                   <div className="grid grid-cols-2 gap-2">
                     <Input label="Razza" value={formCane.razza} onChange={(v) => setFormCane({ ...formCane, razza: v })} />
                     <Input label="Età" value={formCane.eta} onChange={(v) => setFormCane({ ...formCane, eta: v })} />
                   </div>
+                  <label className="block">
+                    <span className="text-[12px] font-medium text-slate-500 mb-1 block">Data di nascita cane</span>
+                    <input type="date" value={formCane.dataNascitaCane} onChange={(e) => setFormCane({ ...formCane, dataNascitaCane: e.target.value })}
+                      className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                  </label>
+                  <Input label="Microchip" value={formCane.microchip} onChange={(v) => setFormCane({ ...formCane, microchip: v })} icon={<Fingerprint size={13} />} />
                   <Input label="Specializzazione" value={formCane.specializzazione} onChange={(v) => setFormCane({ ...formCane, specializzazione: v })} icon={<Award size={13} />} />
+
+                  <div className="pt-1" style={{ borderTop: "1px solid #E4DCC8" }}>
+                    <div className="text-[11px] font-bold uppercase tracking-wide mt-3 mb-2" style={{ color: COLORS.muted, fontFamily: "Oswald, sans-serif" }}>
+                      🎖️ Brevetti
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <Input label="Brevetto ACS n°" value={formCane.brevettoAcs} onChange={(v) => setFormCane({ ...formCane, brevettoAcs: v })} />
+                      <Input label="Brevetto salvataggio n°" value={formCane.brevettoSalvataggio} onChange={(v) => setFormCane({ ...formCane, brevettoSalvataggio: v })} />
+                    </div>
+                    <label className="block">
+                      <span className="text-[12px] font-medium text-slate-500 mb-1 block">Scadenza brevetto</span>
+                      <input type="date" value={formCane.scadenzaBrevetto} onChange={(e) => setFormCane({ ...formCane, scadenzaBrevetto: e.target.value })}
+                        className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none" style={{ borderColor: "#E4DCC8" }} />
+                    </label>
+                  </div>
+
                   <div className="flex gap-3">
                     <PrimaryButton color={COLORS.navy}>Crea scheda</PrimaryButton>
                     <button type="button" onClick={() => setNuovoCane(false)} className="text-[12.5px]" style={{ color: COLORS.muted }}>Annulla</button>
@@ -1810,7 +1904,7 @@ function rilevaPiattaforma() {
   return "desktop";
 }
 
-function InstallBanner({ onClose }) {
+function InstallBanner({ onClose, deferredPrompt, onInstallClick }) {
   const [os, setOs] = useState(rilevaPiattaforma);
   const testi = {
     desktop: {
@@ -1830,34 +1924,52 @@ function InstallBanner({ onClose }) {
       linea: <>Tocca <Share size={13} className="inline -mt-0.5 mx-0.5" /> <b>Condividi</b> accanto alla barra, poi <b>"Aggiungi a Home"</b></>,
     },
   };
+  // Su Chrome/Edge (desktop o Android) il browser può offrire l'installazione
+  // con un vero pulsante nativo, come su iOS non è mai possibile: Apple non
+  // supporta questa funzione del browser, quindi lì restano le istruzioni.
+  const puoInstallareDiretto = !!deferredPrompt && (os === "desktop" || os === "android");
+
   return (
     <div className="max-w-md sm:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 pt-3">
       <div className="rounded-lg border flex items-center gap-2.5 px-3 py-2 relative" style={{ background: "#EAF3FA", borderColor: "#CFE3F0" }}>
         <img src={LOGO_ACS} alt="Logo ACS" className="w-8 h-8 rounded-lg shrink-0 object-contain bg-white" />
         <div className="flex-1 min-w-0 pr-4">
-          <div className="text-[11.5px] leading-snug" style={{ color: "#3A4C55" }}>
-            <b style={{ color: COLORS.navy }}>Installa ACS: </b>{testi[os].linea}
-          </div>
+          {puoInstallareDiretto ? (
+            <div className="text-[12px]" style={{ color: COLORS.navy }}>
+              <b>Installa ACS</b> — accesso più rapido, come un'app vera
+            </div>
+          ) : (
+            <div className="text-[11.5px] leading-snug" style={{ color: "#3A4C55" }}>
+              <b style={{ color: COLORS.navy }}>Installa ACS: </b>{testi[os].linea}
+            </div>
+          )}
         </div>
+        {puoInstallareDiretto && (
+          <button onClick={onInstallClick} className="shrink-0 text-[12px] font-bold px-3 py-1.5 rounded-full flex items-center gap-1" style={{ background: COLORS.navy, color: "#fff" }}>
+            <Download size={13} /> Installa
+          </button>
+        )}
         <button onClick={onClose} aria-label="Chiudi" className="shrink-0">
           <X size={15} color="#7C93A0" />
         </button>
       </div>
-      <div className="flex gap-1 mt-1.5 px-0.5">
-        {Object.entries(testi).map(([key, t]) => (
-          <button
-            key={key}
-            onClick={() => setOs(key)}
-            className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full"
-            style={{
-              background: os === key ? COLORS.navy : "rgba(22,50,74,0.06)",
-              color: os === key ? "#fff" : COLORS.muted,
-            }}
-          >
-            {t.pill}
-          </button>
-        ))}
-      </div>
+      {!puoInstallareDiretto && (
+        <div className="flex gap-1 mt-1.5 px-0.5">
+          {Object.entries(testi).map(([key, t]) => (
+            <button
+              key={key}
+              onClick={() => setOs(key)}
+              className="text-[9.5px] font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                background: os === key ? COLORS.navy : "rgba(22,50,74,0.06)",
+                color: os === key ? "#fff" : COLORS.muted,
+              }}
+            >
+              {t.pill}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1867,16 +1979,36 @@ function InstallBanner({ onClose }) {
 export default function App() {
   const [role, setRole] = useState("cliente");
   const [installVisible, setInstallVisible] = useState(true);
-  const [prenotazioni, setPrenotazioni] = useState(MOCK_PRENOTAZIONI);
-  const [eventi, setEventi] = useState(MOCK_DISPONIBILITA);
-  const [anagrafica, setAnagrafica] = useState(MOCK_ANAGRAFICA);
+  const backendCollegato = !API_URL.includes("INSERISCI_QUI");
+  const [prenotazioni, setPrenotazioni] = useState(backendCollegato ? [] : MOCK_PRENOTAZIONI);
+  const [eventi, setEventi] = useState(backendCollegato ? [] : MOCK_DISPONIBILITA);
+  const [anagrafica, setAnagrafica] = useState(backendCollegato ? [] : MOCK_ANAGRAFICA);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
-    if (API_URL.includes("INSERISCI_QUI")) return; // backend non ancora collegato: resta sui dati di esempio
+    if (!backendCollegato) return; // backend non ancora collegato: resta sui dati di esempio
     chiamaAPIGet("getDisponibilita")
       .then((dati) => { if (Array.isArray(dati)) setEventi(dati.map(mappaEvento)); })
-      .catch(() => {}); // se fallisce, restano visibili i dati di esempio
+      .catch(() => {}); // se fallisce, la lista resta vuota (nessun dato finto mostrato per errore)
   }, []);
+
+  // Cattura il prompt nativo del browser per installare l'app: disponibile
+  // su Chrome/Edge (desktop e Android), mai su Safari/iOS (limite di Apple)
+  useEffect(() => {
+    function handler(e) {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    }
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  async function installaApp() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  }
 
   const pawPattern = `data:image/svg+xml,${encodeURIComponent(`
     <svg xmlns='http://www.w3.org/2000/svg' width='90' height='90'>
@@ -1903,7 +2035,7 @@ export default function App() {
         .font-mono { font-family: 'IBM Plex Mono', monospace; }
       `}</style>
       <Header role={role} setRole={setRole} onOpenInstall={() => setInstallVisible(true)} />
-      {installVisible && <InstallBanner onClose={() => setInstallVisible(false)} />}
+      {installVisible && <InstallBanner onClose={() => setInstallVisible(false)} deferredPrompt={deferredPrompt} onInstallClick={installaApp} />}
       {/* Entrambe le viste restano montate: così l'istruttore non perde la sessione
           passando all'area cliente e tornando indietro — non serve rifare il login. */}
       <div style={{ display: role === "cliente" ? "block" : "none" }}>
